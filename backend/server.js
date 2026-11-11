@@ -1,17 +1,27 @@
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
+const db = require("./database");
+
 
 const app = express();
-const port = 5000;
+const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
 
-
-app.get('/', (req, res) => {
-  res.send('GameVault');
+app.get("/", (req, res) => {
+  res.send("GameVault API is running!");
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "success",
+    message: "GameVault backend is working!"
+  });
+});
+
+
+app.listen(PORT, () => {
+  console.log(`GameVault server running on http://localhost:${PORT}`);
 });
