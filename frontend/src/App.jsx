@@ -1,14 +1,116 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [game, setGame] = useState([
+    {
+      title: "Minecraft",
+      genre: "Sandbox",
+      platform: "PC",
+      status: "Want to Play",
+      rating: 9
+    },
+    {
+      title: "The Legend of Zelda: Breath of the Wild",
+      genre: "Action-Adventure",
+      platform: "Nintendo Switch",
+      status: "Want to Play",
+      rating: 10
+    },
+    {
+      title: "Fortnite",
+      genre: "Battle Royale",
+      platform: "PC",
+      status: "Want to Play",
+      rating: 8
+    }
+  ])
+  const [gameTitle, setGameTitle] = useState("")
+  function addGame() {
+    if (gameTitle.trim() === "") {
+      return
+    }
+    const newGame = {
+      title: gameTitle,
+      genre: "Unknown",
+      platform: "",
+      status: "Want to Play",
+      rating: 1
+    }
+    console.log("Sending game:", newGame)
+    fetch("http://localhost:5000/api/games", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(newGame)
+    })
+      .then((response) => response.json())
+      .then((game) => setGame((games) => [...games, game]))
+    setGameTitle("")
+  }
+  function deleteGame(indexToDelete) {
+    setGame((game) => game.filter((_, index) => index !== indexToDelete))
+  }
+  function updateGameStatus(indexToUpdate, newStatus) {
+    const updatedGame = game.map((game, index) =>
+      index === indexToUpdate ? { ...game, status: newStatus } : game
+    )
+    setGame(updatedGame)
+  }
+  const [searchTerm, setSearchTerm] = useState("")
+  const filteredGames = game.filter((game) =>
+    (game.title || "").toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  useEffect(() => {
+    fetch("http://localhost:5000/api/games")
+      .then((response) => response.json())
+      .then((games) => setGame(games))
+  }, [])
 
   return (
     <>
+      <h1>GameVault</h1>
+      <p>Welcome to GameVault, your ultimate game collection manager.</p>
+      <h2>My Games: {game.length}</h2>
+      <input
+        type="text"
+        value={gameTitle}
+        onChange={(event) => setGameTitle(event.target.value)}
+        placeholder="Game title"
+      />
+      <button onClick={addGame}>Add Game</button>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(event) => setSearchTerm(event.target.value)}
+        placeholder="Search games"
+      />
+      <button onClick={() => setSearchTerm("")}>Clear Search</button>
+      <p>Current Game Title: {gameTitle}</p>
+      {filteredGames.map((game, index) => (
+        <div className="game-card" key={game.id}>
+          <h3>{game.title}</h3>
+          <p>Genre: {game.genre}</p>
+          <p>Platform: {game.platform}</p>
+          <p>Status: {game.status}</p>
+          <p>Rating: {game.rating}</p>
+          <button onClick={() => deleteGame(index)}>Delete Game</button>
+          <select
+            value={game.status}
+            onChange={(event) =>
+              updateGameStatus(index, event.target.value)
+            }
+          >
+            <option value="Want to Play">Want to Play</option>
+            <option value="Playing">Playing</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      ))}
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
@@ -21,13 +123,6 @@ function App() {
             Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
       </section>
 
       <div className="ticks"></div>
