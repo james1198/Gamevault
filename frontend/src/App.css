@@ -187,7 +187,7 @@
   border: 1px solid #2c3e57;
   border-radius: 14px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   transition: transform 0.2s, border-color 0.2s;
 }
 .game-card:hover {
@@ -245,4 +245,9 @@ input:focus,
 select:focus {
   outline: 2px solid #648cff;
   outline-offset: 2px;
+}
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
 }
