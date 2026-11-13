@@ -73,14 +73,28 @@ function App() {
       .then((games) => setGame(games))
   }, [])
   const [editMode, setEditMode] = useState(false)
-  function updateGame(gameId, updates) {
+  async function updateGame(gameId, updates) {
     const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
     if (!gameToUpdate) return
 
     const updatedGame = { ...gameToUpdate, ...updates }
+    const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(updatedGame)
+    })
+
+    if (!response.ok) {
+      alert("Failed to update game")
+      return
+    }
+
+    const serverUpdatedGame = await response.json()
     setGame((previousGames) =>
       previousGames.map((currentGame) =>
-        currentGame.id === gameId ? updatedGame : currentGame
+        currentGame.id === gameId ? serverUpdatedGame : currentGame
       )
     )
   }
@@ -88,6 +102,9 @@ function App() {
   return (
     <>
       <h1>GameVault</h1>
+      <button onClick={() => setEditMode(!editMode)}>
+      {editMode ? "Exit Edit Mode" : "Edit Mode"}
+      </button>
       <p>Welcome to GameVault, your ultimate game collection manager.</p>
       <h2>My Games: {game.length}</h2>
       <input
@@ -117,9 +134,11 @@ function App() {
             }
             placeholder="Genre"
           />
-          <button onClick={() => setEditMode(!editMode)}>
-            {editMode ? "Exit Edit Mode" : "Edit Mode"}
-          </button>
+          {editMode && (
+            <button onClick={() => setEditMode(!editMode)}>
+              {editMode ? "Exit Edit Mode" : "Edit Mode"}
+            </button>
+          )}
           <input
             type="text"
             value={game.platform}
@@ -131,11 +150,18 @@ function App() {
           />
           <p>Status: {game.status}</p>
           <input
-            type="text"
-            value={game.rating}
+            type="number"
+            min="1"
+            max="10"
+            value={game.rating ?? ""}
             disabled={!editMode}
             onChange={(event) =>
-              updateGame(game.id, { rating: event.target.value })
+              updateGame(game.id, {
+                rating:
+                  event.target.value === ""
+                    ? null
+                    : Number(event.target.value)
+              })
             }
             placeholder="Rating"
           />
@@ -145,16 +171,16 @@ function App() {
             </button>
           )}
           <select
-            value={game.status}
-            disabled={!editMode}
-            onChange={(event) =>
-              updateStatus(game.id, event.target.value)
-            }
-          >
-            <option value="Want to Play">Want to Play</option>
-            <option value="Playing">Playing</option>
-            <option value="Completed">Completed</option>
-          </select>
+          value={game.status}
+          disabled={!editMode}
+          onChange={(event) =>
+            updateStatus(game.id, event.target.value)
+          }
+        >
+          <option value="Want to Play">Want to Play</option>
+          <option value="Currently Playing">Currently Playing</option>
+          <option value="Completed">Completed</option>
+        </select>
         </div>
       ))}
       <section id="center">
@@ -257,6 +283,7 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
+    
   )
 }
 
