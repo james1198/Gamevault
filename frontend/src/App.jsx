@@ -5,29 +5,8 @@ import viteLogo from './assets/vite.svg'
 import './App.css'
 
 function App() {
-  const [game, setGame] = useState([
-    {
-      title: "Minecraft",
-      genre: "Sandbox",
-      platform: "PC",
-      status: "Want to Play",
-      rating: 9
-    },
-    {
-      title: "The Legend of Zelda: Breath of the Wild",
-      genre: "Action-Adventure",
-      platform: "Nintendo Switch",
-      status: "Want to Play",
-      rating: 10
-    },
-    {
-      title: "Fortnite",
-      genre: "Battle Royale",
-      platform: "PC",
-      status: "Want to Play",
-      rating: 8
-    }
-  ])
+
+  const [game, setGame] = useState([])
   const [gameTitle, setGameTitle] = useState("")
   function addGame() {
     if (gameTitle.trim() === "") {
@@ -52,14 +31,37 @@ function App() {
       .then((game) => setGame((games) => [...games, game]))
     setGameTitle("")
   }
-  function deleteGame(indexToDelete) {
-    setGame((game) => game.filter((_, index) => index !== indexToDelete))
+  async function deleteGame(gameid) {
+    const response = await fetch(`http://localhost:5000/api/games/${gameid}`, {
+      method: "DELETE"
+    })
+    if (response.ok) {
+      setGame((games) => games.filter((game) => game.id !== gameid))
+    }
   }
-  function updateGameStatus(indexToUpdate, newStatus) {
-    const updatedGame = game.map((game, index) =>
-      index === indexToUpdate ? { ...game, status: newStatus } : game
+  async function updateStatus(gameId, newStatus) {
+    const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
+    if (!gameToUpdate) return
+
+    const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ ...gameToUpdate, status: newStatus })
+    })
+
+    if (!response.ok) {
+      alert("Failed to update game status")
+      return
+    }
+
+    const updatedGame = await response.json()
+    setGame((previousGames) =>
+      previousGames.map((currentGame) =>
+        currentGame.id === gameId ? updatedGame : currentGame
+      )
     )
-    setGame(updatedGame)
   }
   const [searchTerm, setSearchTerm] = useState("")
   const filteredGames = game.filter((game) =>
@@ -70,6 +72,18 @@ function App() {
       .then((response) => response.json())
       .then((games) => setGame(games))
   }, [])
+  const [editMode, setEditMode] = useState(false)
+  function updateGame(gameId, updates) {
+    const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
+    if (!gameToUpdate) return
+
+    const updatedGame = { ...gameToUpdate, ...updates }
+    setGame((previousGames) =>
+      previousGames.map((currentGame) =>
+        currentGame.id === gameId ? updatedGame : currentGame
+      )
+    )
+  }
 
   return (
     <>
@@ -94,15 +108,39 @@ function App() {
       {filteredGames.map((game, index) => (
         <div className="game-card" key={game.id}>
           <h3>{game.title}</h3>
-          <p>Genre: {game.genre}</p>
-          <p>Platform: {game.platform}</p>
+          <input
+            type="text"
+            value={game.genre}
+            onChange={(event) =>
+              updateGame(game.id, { genre: event.target.value })
+            }
+            placeholder="Genre"
+          />
+          <button onClick={() => setEditMode(!editMode)}>
+            {editMode ? "Exit Edit Mode" : "Edit Mode"}
+          </button>
+          <input
+            type="text"
+            value={game.platform}
+            onChange={(event) =>
+              updateGame(game.id, { platform: event.target.value })
+            }
+            placeholder="Platform"
+          />
           <p>Status: {game.status}</p>
-          <p>Rating: {game.rating}</p>
-          <button onClick={() => deleteGame(index)}>Delete Game</button>
+          <input
+            type="text"
+            value={game.rating}
+            onChange={(event) =>
+              updateGame(game.id, { rating: event.target.value })
+            }
+            placeholder="Rating"
+          />
+          <button onClick={() => deleteGame(game.id)}>Delete Game</button>
           <select
             value={game.status}
             onChange={(event) =>
-              updateGameStatus(index, event.target.value)
+              updateStatus(game.id, event.target.value)
             }
           >
             <option value="Want to Play">Want to Play</option>
