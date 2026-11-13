@@ -251,3 +251,38 @@ select:focus {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 20px;
 }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+.stat-card {
+  background-color: #172238;
+  border: 1px solid #2c3e57;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.stat-card h3 {
+  color: #aabbd3;
+  font-size: 14px;
+  margin: 0;
+}
+
+.stat-card p {
+  color: #8dafff;
+  font-size: 32px;
+  font-weight: bold;
+  margin: 12px 0 0;
+}
+@media (max-width: 600px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 900px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -94,10 +94,15 @@ function App() {
       ),
     )
   }
-
+  const completedGames = game.filter(
+  (currentGame) => currentGame.status === 'Completed'
+).length
   const filteredGames = game.filter((currentGame) =>
     (currentGame.title || '').toLowerCase().includes(searchTerm.toLowerCase()),
   )
+  const playingGames = game.filter(
+  (currentGame) => currentGame.status === 'Currently Playing'
+).length
 
   useEffect(() => {
     fetch('http://localhost:5000/api/games')
@@ -114,7 +119,26 @@ function App() {
       </button>
 
       <p>Welcome to GameVault, your ultimate game collection manager.</p>
-      <h2>My Games: {game.length}</h2>
+      <div className="stats">
+        <div className="stat-card">
+          <h3>Total Games</h3>
+          <p>{game.length}</p>
+        </div>
+
+        <div className="stat-card">
+          <h3>Currently Playing</h3>
+          <p>{playingGames}</p>
+        </div>
+
+        <div className="stat-card">
+          <h3>Completed</h3>
+          <p>{completedGames}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Incomplete</h3>
+          <p>{game.length - completedGames - playingGames}</p>
+        </div>
+      </div>
 
       <input
         type="text"
