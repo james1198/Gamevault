@@ -6,6 +6,16 @@ function App() {
   const [gameTitle, setGameTitle] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [editMode, setEditMode] = useState(false)
+  const [editedGames, setEditedGames] = useState({})
+  function handleGameEdit(gameId, field, value) {
+    setEditedGames((previousEdits) => ({
+      ...previousEdits,
+      [gameId]: {
+        ...previousEdits[gameId],
+        [field]: value,
+      },
+    }))
+  }
 
   function addGame() {
     if (gameTitle.trim() === '') {
@@ -35,6 +45,8 @@ function App() {
   }
 
   async function deleteGame(gameId) {
+    const confirm = window.confirm('Are you sure you want to delete this game?')
+    if (!confirm) return
     const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
       method: 'DELETE',
     })
@@ -69,6 +81,35 @@ function App() {
     )
   }
 
+  async function saveGameChanges(gameId) {
+    const changes = editedGames[gameId]
+    if (!changes) return
+    if (
+      changes.rating !== undefined &&
+      changes.rating !== null &&
+      (!Number.isInteger(changes.rating) ||
+        changes.rating < 1 ||
+        changes.rating > 10)
+    ) {
+      alert('Rating must be a whole number between 1 and 10')
+      return
+    }
+
+    let saved = false
+    try {
+      saved = await updateGame(gameId, changes)
+    } catch (error) {
+      console.error('Save failed:', error)
+      alert('Could not connect to the server')
+    }
+
+    if (!saved) return
+    setEditedGames((previousEdits) => {
+      const { [gameId]: _, ...remainingEdits } = previousEdits
+      return remainingEdits
+    })
+  }
+
   async function updateGame(gameId, updates) {
     const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
     if (!gameToUpdate) return
@@ -82,10 +123,10 @@ function App() {
       body: JSON.stringify(updatedGame),
     })
 
-    if (!response.ok) {
-      alert('Failed to update game')
-      return
-    }
+if (!response.ok) {
+  alert('Failed to update game')
+  return false
+}
 
     const serverUpdatedGame = await response.json()
     setGame((previousGames) =>
@@ -93,6 +134,7 @@ function App() {
         currentGame.id === gameId ? serverUpdatedGame : currentGame,
       ),
     )
+    return true
   }
   const completedGames = game.filter(
   (currentGame) => currentGame.status === 'Completed'
@@ -165,46 +207,53 @@ function App() {
 
             <input
               type="text"
-              value={currentGame.genre ?? ''}
+              value={editedGames[currentGame.id]?.genre ?? currentGame.genre ?? ''}
               disabled={!editMode}
               onChange={(event) =>
-                updateGame(currentGame.id, { genre: event.target.value })
+                handleGameEdit(currentGame.id, 'genre', event.target.value)
               }
               placeholder="Genre"
             />
 
             <input
               type="text"
-              value={currentGame.platform ?? ''}
+              value={editedGames[currentGame.id]?.platform ?? currentGame.platform ?? ''}
               disabled={!editMode}
               onChange={(event) =>
-                updateGame(currentGame.id, { platform: event.target.value })
+                handleGameEdit(currentGame.id, 'platform', event.target.value)
               }
               placeholder="Platform"
             />
 
-            <p>Status: {currentGame.status}</p>
+            <p>
+              Status: {editedGames[currentGame.id]?.status ?? currentGame.status}
+            </p>
 
             <input
               type="number"
               min="1"
               max="10"
-              value={currentGame.rating ?? ''}
+              value={
+              editedGames[currentGame.id]?.rating !== undefined
+                ? (editedGames[currentGame.id].rating ?? '')
+                : (currentGame.rating ?? '')
+            }
               disabled={!editMode}
               onChange={(event) =>
-                updateGame(currentGame.id, {
-                  rating:
-                    event.target.value === '' ? null : Number(event.target.value),
-                })
+                handleGameEdit(
+                  currentGame.id,
+                  'rating',
+                  event.target.value === '' ? null : Number(event.target.value),
+                )
               }
               placeholder="Rating"
             />
 
             <select
-              value={currentGame.status}
+              value={editedGames[currentGame.id]?.status ?? currentGame.status}
               disabled={!editMode}
               onChange={(event) =>
-                updateStatus(currentGame.id, event.target.value)
+              handleGameEdit(currentGame.id, 'status', event.target.value)
               }
             >
               <option value="Want to Play">Want to Play</option>
@@ -214,6 +263,9 @@ function App() {
 
             {editMode && (
               <button onClick={() => deleteGame(currentGame.id)}>Delete</button>
+            )}
+            {editMode && (
+              <button onClick={() => saveGameChanges(currentGame.id)}>Save</button>
             )}
           </div>
         ))}
