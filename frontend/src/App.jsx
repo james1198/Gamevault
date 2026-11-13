@@ -111,6 +111,7 @@ function App() {
           <input
             type="text"
             value={game.genre}
+            disabled={!editMode}
             onChange={(event) =>
               updateGame(game.id, { genre: event.target.value })
             }
@@ -122,6 +123,7 @@ function App() {
           <input
             type="text"
             value={game.platform}
+            disabled={!editMode}
             onChange={(event) =>
               updateGame(game.id, { platform: event.target.value })
             }
@@ -131,14 +133,20 @@ function App() {
           <input
             type="text"
             value={game.rating}
+            disabled={!editMode}
             onChange={(event) =>
               updateGame(game.id, { rating: event.target.value })
             }
             placeholder="Rating"
           />
-          <button onClick={() => deleteGame(game.id)}>Delete Game</button>
+          {editMode && (
+            <button onClick={() => setEditMode(!editMode)}>
+              {editMode ? "Exit Edit Mode" : "Edit Mode"}
+            </button>
+          )}
           <select
             value={game.status}
+            disabled={!editMode}
             onChange={(event) =>
               updateStatus(game.id, event.target.value)
             }
