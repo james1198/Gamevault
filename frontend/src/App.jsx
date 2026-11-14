@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { loadGames, findGame } from './algorithms/gameArray'
+import { HashTable } from './algorithms/hashTableChaining'
 import './App.css'
 
 function App() {
@@ -149,6 +150,15 @@ if (!response.ok) {
     )
     return true
   }
+  function testArraySearch(gameId) {
+    if (game.length === 0) {
+      console.log('no game available to search') 
+      return
+    }
+    const firstGameId = game[0].id
+    const result = findGame(firstGameId)
+    console.log('DSA array search result:', result)
+  }
   const completedGames = game.filter(
   (currentGame) => currentGame.status === 'Completed'
 ).length
@@ -163,17 +173,31 @@ if (!response.ok) {
     fetch('http://localhost:5000/api/games')
       .then((response) => response.json())
       .then((games) => {
-        loadGames(games)
         setGame(games)
       })
       .catch((error) => console.error('Failed to fetch games:', error))
   }, [])
+  useEffect(() => {
+    loadGames(game)
+    const hashTable = new HashTable(Math.max(5, game.length * 2))
+    game.forEach((currentGame) => {
+      hashTable.set(currentGame.id, currentGame)
+    })
+    console.log('chaining hash table:', hashTable)
+    console.log('Games in Hash Table:', hashTable.getAllGames())
+    if (game.length > 0) {
+      console.log('Chaining Search Result:', hashTable.get(game[0].id))
+    }
+  }, [game])
 
   return (
     <>
       <h1>GameVault</h1>
       <button onClick={() => setEditMode(!editMode)}>
         {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
+      </button>
+      <button onClick={() => testArraySearch()}>
+        Test Array Search
       </button>
 
       <p>Welcome to GameVault, your ultimate game collection manager.</p>
