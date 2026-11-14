@@ -42,11 +42,17 @@ app.post("/api/games", (req, res) => {
     rating = null
   } = req.body;
 
-  if (!title || !title.trim()) {
+  if (typeof title !== "string" || !title.trim()) {
     return res.status(400).json({
       error: "Game title is required."
     });
   }
+  if (typeof genre !== "string" || typeof platform !== "string") {
+    return res.status(400).json({
+      error: "Genre and platform must be text."
+    });
+  }
+  
 
   if (!validStatuses.includes(status)) {
     return res.status(400).json({
@@ -85,11 +91,16 @@ app.put("/api/games/:id", (req, res) => {
     rating = null
   } = req.body;
 
-  if (!title || !title.trim()) {
+  if (typeof title !== "string" || !title.trim()) {
     return res.status(400).json({
       error: "Game title is required."
     });
   }
+    if (typeof genre !== "string" || typeof platform !== "string") {
+      return res.status(400).json({
+        error: "Genre and platform must be text."
+      });
+    }
 
   if (!validStatuses.includes(status)) {
     return res.status(400).json({

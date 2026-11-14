@@ -4,6 +4,8 @@ import './App.css'
 function App() {
   const [game, setGame] = useState([])
   const [gameTitle, setGameTitle] = useState('')
+  const [gameGenre, setGameGenre] = useState('')
+const [gamePlatform, setGamePlatform] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [editMode, setEditMode] = useState(false)
   const [editedGames, setEditedGames] = useState({})
@@ -17,15 +19,17 @@ function App() {
     }))
   }
 
-  function addGame() {
-    if (gameTitle.trim() === '') {
-      return
-    }
+function addGame() {
+  console.log('Add Game button clicked')
+
+  if (gameTitle.trim() === '') {
+    return
+  }
 
     const newGame = {
-      title: gameTitle,
-      genre: 'Unknown',
-      platform: '',
+      title: gameTitle.trim(),
+      genre: gameGenre.trim(),
+      platform: gamePlatform.trim(),
       status: 'Want to Play',
       rating: 1,
     }
@@ -37,11 +41,19 @@ function App() {
       },
       body: JSON.stringify(newGame),
     })
-      .then((response) => response.json())
-      .then((createdGame) => setGame((games) => [...games, createdGame]))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to add game')
+        }
+        return response.json()
+      })
+      .then((createdGame) => {
+        setGame((games) => [...games, createdGame])
+        setGameTitle('')
+        setGameGenre('')
+        setGamePlatform('')
+      })
       .catch((error) => console.error('Failed to add game:', error))
-
-    setGameTitle('')
   }
 
   async function deleteGame(gameId) {
@@ -187,6 +199,18 @@ if (!response.ok) {
         value={gameTitle}
         onChange={(event) => setGameTitle(event.target.value)}
         placeholder="Game title"
+      />
+      <input
+        type="text"
+        value={gameGenre}
+        onChange={(event) => setGameGenre(event.target.value)}
+        placeholder="Game genre"
+      />
+      <input
+        type="text"
+        value={gamePlatform}
+        onChange={(event) => setGamePlatform(event.target.value)}
+        placeholder="Game platform"
       />
       <button onClick={addGame}>Add Game</button>
 
