@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { loadGames, findGame } from './algorithms/gameArray'
 import './App.css'
 
 function App() {
@@ -161,7 +162,10 @@ if (!response.ok) {
   useEffect(() => {
     fetch('http://localhost:5000/api/games')
       .then((response) => response.json())
-      .then((games) => setGame(games))
+      .then((games) => {
+        loadGames(games)
+        setGame(games)
+      })
       .catch((error) => console.error('Failed to fetch games:', error))
   }, [])
 
