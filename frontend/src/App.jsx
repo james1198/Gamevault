@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
+import { linearHashTable } from './algorithms/hashTableLinear'
 import './App.css'
 
 function App() {
@@ -187,6 +188,14 @@ if (!response.ok) {
     console.log('Games in Hash Table:', hashTable.getAllGames())
     if (game.length > 0) {
       console.log('Chaining Search Result:', hashTable.get(game[0].id))
+    }
+    const linearTable = new linearHashTable(Math.max(5, game.length * 2 + 1))
+    game.forEach((currentGame) => {
+      linearTable.set(currentGame.id, currentGame)
+    })
+    console.log('Linear Probing Table:', linearTable.getAllGames())
+    if (game.length > 0) {
+      console.log('Linear Probing Search Result:', linearTable.get(game[0].id))
     }
   }, [game])
 
