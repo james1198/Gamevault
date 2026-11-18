@@ -225,9 +225,7 @@ if (!response.ok) {
       <button onClick={() => setEditMode(!editMode)}>
         {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
       </button>
-      <button onClick={() => testArraySearch()}>
-        Test Array Search
-      </button>
+
 
       <p>Welcome to GameVault, your ultimate game collection manager.</p>
       <div className="stats">
