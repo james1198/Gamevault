@@ -197,6 +197,26 @@ if (!response.ok) {
     if (game.length > 0) {
       console.log('Linear Probing Search Result:', linearTable.get(game[0].id))
     }
+    if (game.length > 0) {
+      const searchId = game[0].id
+
+        const repetitions = 10000
+
+        const chainingStart = performance.now()
+        for (let i = 0; i < repetitions; i++) {
+          hashTable.get(searchId)
+        }
+        const chainingEnd = performance.now()
+
+        const linearStart = performance.now()
+        for (let i = 0; i < repetitions; i++) {
+          linearTable.get(searchId)
+        }
+        const linearEnd = performance.now()
+      
+        console.log('Chaining search time:', chainingEnd - chainingStart, 'ms')
+        console.log('Linear probing search time:', linearEnd - linearStart, 'ms')
+      }
   }, [game])
 
   return (
