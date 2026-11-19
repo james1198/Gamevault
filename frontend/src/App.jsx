@@ -1,458 +1,443 @@
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState } from 'react'
+import {
+  Alert, Platform, Pressable, SafeAreaView,
+  ScrollView, StyleSheet, Text, TextInput,
+  useWindowDimensions, View
+} from 'react-native'
+import { Picker } from '@react-native-picker/picker'
 import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from 'react-native'
-import { Picker } from '@react-native-picker/picker'
 
-function App() {
-  const [game, setGame] = useState([])
-  const [gameTitle, setGameTitle] = useState('')
-  const [gameGenre, setGameGenre] = useState('')
-const [gamePlatform, setGamePlatform] = useState('')
-  const [searchTerm, setSearchTerm] = useState('')
+const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'
+
+// Reusable button
+function Button({ title, onPress, type = 'primary' }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.button, styles[type]]}
+    >
+      <Text style={styles.buttonText}>{title}</Text>
+    </Pressable>
+  )
+}
+
+// Reusable text input
+function Field({ value, onChangeText, placeholder, editable = true }) {
+  return (
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#aabbd3"
+      editable={editable}
+      style={[styles.input, !editable && styles.disabled]}
+    />
+  )
+}
+
+export default function App() {
+  const { width } = useWindowDimensions()
+  const wide = width > 900
+
+  // State
+  const [games, setGames] = useState([])
+  const [title, setTitle] = useState('')
+  const [genre, setGenre] = useState('')
+  const [platform, setPlatform] = useState('')
+  const [search, setSearch] = useState('')
   const [editMode, setEditMode] = useState(false)
-  const [editedGames, setEditedGames] = useState({})
-  function handleGameEdit(gameId, field, value) {
-    setEditedGames((previousEdits) => ({
-      ...previousEdits,
-      [gameId]: {
-        ...previousEdits[gameId],
-        [field]: value,
-      },
+  const [edits, setEdits] = useState({})
+
+  // Notifications
+  function notify(message) {
+    if (Platform.OS === 'web') globalThis.alert(message)
+    else Alert.alert('GameVault', message)
+  }
+
+  // Load games from SQLite backend
+  useEffect(() => {
+    fetch(`${API}/api/games`)
+      .then(res => {
+        if (!res.ok) throw Error('Unable to load games')
+        return res.json()
+      })
+      .then(setGames)
+      .catch(() => notify('Unable to load games'))
+  }, [])
+
+  // DSA: Array and two hash table implementations
+  useEffect(() => {
+    loadGames(games)
+
+    const chaining = new HashTable(Math.max(5, games.length * 2))
+    const linear = new linearHashTable(Math.max(5, games.length * 2 + 1))
+
+    games.forEach(game => {
+      chaining.set(game.id, game)
+      linear.set(game.id, game)
+    })
+
+    console.log('Array games:', games)
+    console.log('Chaining:', chaining.getAllGames())
+    console.log('Linear:', linear.getAllGames())
+
+    if (games.length > 0) {
+      const id = games[0].id
+      const repetitions = 10000
+
+      console.log('Array search:', findGame(id))
+
+      const start1 = performance.now()
+      for (let i = 0; i < repetitions; i++) chaining.get(id)
+      const chainingTime = performance.now() - start1
+
+      const start2 = performance.now()
+      for (let i = 0; i < repetitions; i++) linear.get(id)
+      const linearTime = performance.now() - start2
+
+      console.log('Chaining time:', chainingTime, 'ms')
+      console.log('Linear time:', linearTime, 'ms')
+    }
+  }, [games])
+
+  // API helper
+  async function request(path, method = 'GET', data) {
+    const response = await fetch(`${API}/api/games${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      ...(data !== undefined ? { body: JSON.stringify(data) } : {})
+    })
+
+    if (!response.ok) throw Error(`Request failed: ${method}`)
+    return method === 'DELETE' ? null : response.json()
+  }
+
+  // Add a new game
+  async function addGame() {
+    if (!title.trim()) return notify('Enter a game title')
+
+    try {
+      const created = await request('', 'POST', {
+        title: title.trim(),
+        genre: genre.trim(),
+        platform: platform.trim(),
+        status: 'Want to Play',
+        rating: 1
+      })
+
+      setGames(previous => [...previous, created])
+      setTitle('')
+      setGenre('')
+      setPlatform('')
+    } catch {
+      notify('Unable to add game')
+    }
+  }
+
+  // Store unsaved edits
+  function editGame(id, field, value) {
+    setEdits(previous => ({
+      ...previous,
+      [id]: { ...previous[id], [field]: value }
     }))
   }
 
-function addGame() {
-  console.log('Add Game button clicked')
-
-  if (gameTitle.trim() === '') {
-    return
-  }
-
-    const newGame = {
-      title: gameTitle.trim(),
-      genre: gameGenre.trim(),
-      platform: gamePlatform.trim(),
-      status: 'Want to Play',
-      rating: 1,
-    }
-
-    fetch('http://localhost:5000/api/games', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newGame),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to add game')
-        }
-        return response.json()
-      })
-      .then((createdGame) => {
-        setGame((games) => [...games, createdGame])
-        setGameTitle('')
-        setGameGenre('')
-        setGamePlatform('')
-      })
-      .catch((error) => console.error('Failed to add game:', error))
-  }
-
-  async function deleteGame(gameId) {
-    const confirm = window.confirm('Are you sure you want to delete this game?')
-    if (!confirm) return
-    const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
-      method: 'DELETE',
-    })
-
-    if (response.ok) {
-      setGame((games) => games.filter((currentGame) => currentGame.id !== gameId))
-    }
-  }
-
-  async function updateStatus(gameId, newStatus) {
-    const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
-    if (!gameToUpdate) return
-
-    const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ ...gameToUpdate, status: newStatus }),
-    })
-
-    if (!response.ok) {
-      alert('Failed to update game status')
-      return
-    }
-
-    const updatedGame = await response.json()
-    setGame((previousGames) =>
-      previousGames.map((currentGame) =>
-        currentGame.id === gameId ? updatedGame : currentGame,
-      ),
-    )
-  }
-
-  async function saveGameChanges(gameId) {
-    const changes = editedGames[gameId]
+  // Save changes
+  async function saveGame(id) {
+    const changes = edits[id]
     if (!changes) return
-    if (
-      changes.rating !== undefined &&
-      changes.rating !== null &&
-      (!Number.isInteger(changes.rating) ||
-        changes.rating < 1 ||
-        changes.rating > 10)
-    ) {
-      alert('Rating must be a whole number between 1 and 10')
-      return
+
+    if (changes.rating != null &&
+        (!Number.isInteger(changes.rating) ||
+         changes.rating < 1 || changes.rating > 10)) {
+      return notify('Rating must be a whole number from 1 to 10')
     }
 
-    let saved = false
+    const original = games.find(game => game.id === id)
+    if (!original) return
+
     try {
-      saved = await updateGame(gameId, changes)
-    } catch (error) {
-      console.error('Save failed:', error)
-      alert('Could not connect to the server')
-    }
-
-    if (!saved) return
-    setEditedGames((previousEdits) => {
-      const { [gameId]: _, ...remainingEdits } = previousEdits
-      return remainingEdits
-    })
-  }
-
-  async function updateGame(gameId, updates) {
-    const gameToUpdate = game.find((currentGame) => currentGame.id === gameId)
-    if (!gameToUpdate) return
-
-    const updatedGame = { ...gameToUpdate, ...updates }
-    const response = await fetch(`http://localhost:5000/api/games/${gameId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updatedGame),
-    })
-
-if (!response.ok) {
-  alert('Failed to update game')
-  return false
-}
-
-    const serverUpdatedGame = await response.json()
-    setGame((previousGames) =>
-      previousGames.map((currentGame) =>
-        currentGame.id === gameId ? serverUpdatedGame : currentGame,
-      ),
-    )
-    return true
-  }
-  function testArraySearch(gameId) {
-    if (game.length === 0) {
-      console.log('no game available to search') 
-      return
-    }
-    const firstGameId = game[0].id
-    const result = findGame(firstGameId)
-    console.log('DSA array search result:', result)
-  }
-  const completedGames = game.filter(
-  (currentGame) => currentGame.status === 'Completed'
-).length
-  const filteredGames = game.filter((currentGame) =>
-    (currentGame.title || '').toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-  const playingGames = game.filter(
-  (currentGame) => currentGame.status === 'Currently Playing'
-).length
-
-  useEffect(() => {
-    fetch('http://localhost:5000/api/games')
-      .then((response) => response.json())
-      .then((games) => {
-        setGame(games)
+      const updated = await request(`/${id}`, 'PUT', {
+        ...original, ...changes
       })
-      .catch((error) => console.error('Failed to fetch games:', error))
-  }, [])
-  useEffect(() => {
-    loadGames(game)
-    const hashTable = new HashTable(Math.max(5, game.length * 2))
-    game.forEach((currentGame) => {
-      hashTable.set(currentGame.id, currentGame)
-    })
-    console.log('chaining hash table:', hashTable)
-    console.log('Games in Hash Table:', hashTable.getAllGames())
-    if (game.length > 0) {
-      console.log('Chaining Search Result:', hashTable.get(game[0].id))
+
+      setGames(previous =>
+        previous.map(game => game.id === id ? updated : game)
+      )
+
+      setEdits(previous => {
+        const remaining = { ...previous }
+        delete remaining[id]
+        return remaining
+      })
+    } catch {
+      notify('Unable to save changes')
     }
-    const linearTable = new linearHashTable(Math.max(5, game.length * 2 + 1))
-    game.forEach((currentGame) => {
-      linearTable.set(currentGame.id, currentGame)
-    })
-    console.log('Linear Probing Table:', linearTable.getAllGames())
-    if (game.length > 0) {
-      console.log('Linear Probing Search Result:', linearTable.get(game[0].id))
+  }
+
+  // Delete a game
+  async function deleteGame(id) {
+    try {
+      await request(`/${id}`, 'DELETE')
+      setGames(previous => previous.filter(game => game.id !== id))
+    } catch {
+      notify('Unable to delete game')
     }
-    if (game.length > 0) {
-      const searchId = game[0].id
+  }
 
-        const repetitions = 10000
+  function confirmDelete(id) {
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm('Delete this game?')) deleteGame(id)
+    } else {
+      Alert.alert('Delete Game', 'Are you sure?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive',
+          onPress: () => deleteGame(id) }
+      ])
+    }
+  }
 
-        const chainingStart = performance.now()
-        for (let i = 0; i < repetitions; i++) {
-          hashTable.get(searchId)
-        }
-        const chainingEnd = performance.now()
+  // Statistics and search
+  const completed = games.filter(g => g.status === 'Completed').length
+  const playing = games.filter(g => g.status === 'Currently Playing').length
+  const filtered = games.filter(g =>
+    (g.title || '').toLowerCase().includes(search.toLowerCase())
+  )
 
-        const linearStart = performance.now()
-        for (let i = 0; i < repetitions; i++) {
-          linearTable.get(searchId)
-        }
-        const linearEnd = performance.now()
-      
-        console.log('Chaining search time:', chainingEnd - chainingStart, 'ms')
-        console.log('Linear probing search time:', linearEnd - linearStart, 'ms')
-      }
-  }, [game])
+  const statistics = [
+    ['Total Games', games.length],
+    ['Currently Playing', playing],
+    ['Completed', completed],
+    ['Incomplete', games.length - completed - playing]
+  ]
 
-    return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: '#0f172a' }}
-      contentContainerStyle={{
-        padding: 20,
-        paddingBottom: 40,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 32,
-          fontWeight: 'bold',
-          color: '#38bdf8',
-          marginBottom: 15,
-        }}
+  return (
+    <SafeAreaView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
       >
-        GameVault
-      </Text>
-      <Pressable onPress={() => setEditMode(!editMode)}>
-        <Text>
-          {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
+        {/* Header */}
+        <Text style={styles.title}>GameVault</Text>
+        <Text style={styles.subtitle}>
+          Your ultimate game collection manager
         </Text>
-      </Pressable>
 
-
-      <Text>Welcome to GameVault, your ultimate game collection manager.</Text>
-      <View style={styles.stats}>
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Total Games</Text>
-          <Text style={styles.statValue}>{game.length}</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Currently Playing</Text>
-          <Text style={styles.statValue}>{playingGames}</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Completed</Text>
-          <Text style={styles.statValue}>{completedGames}</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Incomplete</Text>
-          <Text style={styles.statValue}>{game.length - completedGames - playingGames}</Text>
-        </View>
-      </View>
-
-      <TextInput
-        value={gameTitle}
-        onChangeText={setGameTitle}
-        placeholder="Game title"
-          style={{
-          borderWidth: 1,
-          borderColor: '#999',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 10,
-        }}
-      />
-            <TextInput
-        value={gameGenre}
-        onChangeText={setGameGenre}
-        placeholder="Game genre"
-        style={{
-          borderWidth: 1,
-          borderColor: '#999',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 10,
-        }}
-      />
-              <TextInput
-          value={gamePlatform}
-          onChangeText={setGamePlatform}
-          placeholder="Game platform"
-          style={{
-            borderWidth: 1,
-            borderColor: '#999',
-            borderRadius: 8,
-            padding: 10,
-            marginBottom: 10,
-          }}
+        <Button
+          title={editMode ? 'Exit Edit Mode' : 'Edit Mode'}
+          onPress={() => setEditMode(!editMode)}
         />
-      <Pressable onPress={addGame}>
-        <Text>Add Game</Text>
-      </Pressable>
 
-      <TextInput
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-        placeholder="Search games"
-        style={{
-          borderWidth: 1,
-          borderColor: '#999',
-          borderRadius: 8,
-          padding: 10,
-          marginBottom: 10,
-        }}
-      />
-      <Pressable onPress={() => setSearchTerm('')}>
-        <Text>Clear Search</Text>
-      </Pressable>
-
-      <Text>Current Game Title: {gameTitle}</Text>
-
-      <View style={styles.gamesGrid}>
-        {filteredGames.map((currentGame) => (
-          <View style={styles.gameCard} key={currentGame.id}>
-            <Text style={styles.gameTitle}>{currentGame.title}</Text>
-
-            <TextInput
-              value={editedGames[currentGame.id]?.genre ?? currentGame.genre ?? ''}
-              editable={editMode}
-              onChangeText={(value) =>
-                handleGameEdit(currentGame.id, 'genre', value)
-              }
-              placeholder="Genre"
-              style={{
-                borderWidth: 1,
-                borderColor: '#999',
-                borderRadius: 8,
-                padding: 10,
-                marginBottom: 10,
-              }}
-            />
-
-            <TextInput
-              value={editedGames[currentGame.id]?.platform ?? currentGame.platform ?? ''}
-              editable={editMode}
-              onChangeText={(value) =>
-                handleGameEdit(currentGame.id, 'platform', value)
-              }
-              placeholder="Platform"
-              style={{
-                borderWidth: 1,
-                borderColor: '#999',
-                borderRadius: 8,
-                padding: 10,
-                marginBottom: 10,
-              }}
-            />
-
-            <Text>
-              Status: {editedGames[currentGame.id]?.status ?? currentGame.status}
-            </Text>
-            <TextInput
-              value={String(
-                editedGames[currentGame.id]?.rating !== undefined
-                  ? (editedGames[currentGame.id].rating ?? '')
-                  : (currentGame.rating ?? '')
-              )}
-              editable={editMode}
-              keyboardType="numeric"
-              onChangeText={(value) =>
-                handleGameEdit(
-                  currentGame.id,
-                  'rating',
-                  value === '' ? null : Number(value)
-                )
-              }
-              placeholder="Rating (1-10)"
-              style={{
-                borderWidth: 1,
-                borderColor: '#999',
-                borderRadius: 8,
-                padding: 10,
-                marginBottom: 10,
-              }}
-            />
-
-            <View>
-              <Text>Status:</Text>
-              <Picker
-                selectedValue={editedGames[currentGame.id]?.status ?? currentGame.status}
-                disabled={!editMode}
-                onValueChange={(value) => handleGameEdit(currentGame.id, 'status', value)}
-              >
-                <Picker.Item label="Want to Play" value="Want to Play" />
-                <Picker.Item label="Currently Playing" value="Currently Playing" />
-                <Picker.Item label="Completed" value="Completed" />
-              </Picker>
+        {/* Statistics */}
+        <View style={styles.stats}>
+          {statistics.map(([label, value]) => (
+            <View
+              key={label}
+              style={[styles.statCard, {
+                width: wide ? '22%' : '46%'
+              }]}
+            >
+              <Text style={styles.statLabel}>{label}</Text>
+              <Text style={styles.statNumber}>{value}</Text>
             </View>
+          ))}
+        </View>
 
-            {editMode && (
-              <Pressable onPress={() => deleteGame(currentGame.id)}>
-                <Text>Delete</Text>
-              </Pressable>
-            )}
-            {editMode && (
-              <Pressable onPress={() => saveGameChanges(currentGame.id)}>
-                <Text>Save</Text>
-              </Pressable>
-            )}
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+        {/* Add Game */}
+        <View style={styles.section}>
+          <Text style={styles.heading}>Add a Game</Text>
+
+          <Field value={title} onChangeText={setTitle}
+            placeholder="Game title" />
+          <Field value={genre} onChangeText={setGenre}
+            placeholder="Genre" />
+          <Field value={platform} onChangeText={setPlatform}
+            placeholder="Platform" />
+
+          <Button title="Add Game" onPress={addGame} />
+        </View>
+
+        {/* Search */}
+        <View style={styles.section}>
+          <Text style={styles.heading}>Your Games</Text>
+
+          <Field value={search} onChangeText={setSearch}
+            placeholder="Search games" />
+
+          {search.length > 0 && (
+            <Button title="Clear Search"
+              type="secondary" onPress={() => setSearch('')} />
+          )}
+
+          <Text style={styles.subtitle}>
+            {filtered.length} {filtered.length === 1 ? 'game' : 'games'}
+          </Text>
+        </View>
+
+        {/* Game Collection */}
+        <View style={styles.gamesGrid}>
+          {filtered.length === 0 && (
+            <Text style={styles.subtitle}>
+              {search ? 'No matching games.' : 'Your library is empty.'}
+            </Text>
+          )}
+
+          {filtered.map(game => {
+            const current = { ...game, ...edits[game.id] }
+
+            return (
+              <View
+                key={game.id}
+                style={[styles.gameCard, {
+                  width: wide ? '48%' : '100%'
+                }]}
+              >
+                <Text style={styles.gameTitle}>{game.title}</Text>
+
+                <Text style={styles.label}>Genre</Text>
+                <Field
+                  value={current.genre ?? ''}
+                  editable={editMode}
+                  onChangeText={v => editGame(game.id, 'genre', v)}
+                  placeholder="Genre"
+                />
+
+                <Text style={styles.label}>Platform</Text>
+                <Field
+                  value={current.platform ?? ''}
+                  editable={editMode}
+                  onChangeText={v => editGame(game.id, 'platform', v)}
+                  placeholder="Platform"
+                />
+
+                <Text style={styles.label}>Rating (1–10)</Text>
+                <Field
+                  value={String(current.rating ?? '')}
+                  editable={editMode}
+                  onChangeText={v => editGame(game.id, 'rating',
+                    v === '' ? null : Number(v))}
+                  placeholder="Rating"
+                />
+
+                <Text style={styles.label}>Status</Text>
+                <Text style={styles.status}>{current.status}</Text>
+
+                <Picker
+                  selectedValue={current.status}
+                  enabled={editMode}
+                  onValueChange={v => editGame(game.id, 'status', v)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Want to Play" value="Want to Play" />
+                  <Picker.Item label="Currently Playing"
+                    value="Currently Playing" />
+                  <Picker.Item label="Completed" value="Completed" />
+                </Picker>
+
+                {editMode && (
+                  <View style={styles.actions}>
+                    <Button title="Delete" type="danger"
+                      onPress={() => confirmDelete(game.id)} />
+                    <Button title="Save"
+                      onPress={() => saveGame(game.id)} />
+                  </View>
+                )}
+              </View>
+            )
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
-export default App
-
+// Shared React Native styles
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#0c1220' },
+  container: {
+    alignItems: 'center', alignSelf: 'center',
+    width: '100%', maxWidth: 1200,
+    padding: 20, paddingBottom: 50
+  },
+  title: {
+    color: '#fff', fontSize: 42,
+    fontWeight: 'bold', textAlign: 'center', marginTop: 20
+  },
+  subtitle: {
+    color: '#fff', fontSize: 15,
+    textAlign: 'center', marginVertical: 12
+  },
+  heading: {
+    color: '#fff', fontSize: 23,
+    fontWeight: 'bold', textAlign: 'center', marginBottom: 15
+  },
+  button: {
+    backgroundColor: '#4361ee', borderRadius: 8,
+    paddingVertical: 12, paddingHorizontal: 22,
+    alignItems: 'center', margin: 5, minHeight: 44
+  },
+  primary: { backgroundColor: '#4361ee' },
+  secondary: { backgroundColor: '#24314b' },
+  danger: { backgroundColor: '#6b3541' },
+  buttonText: {
+    color: '#fff', fontWeight: 'bold',
+    fontSize: 15, textAlign: 'center'
+  },
   stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 15,
+    flexDirection: 'row', flexWrap: 'wrap',
+    justifyContent: 'center', width: '100%',
+    maxWidth: 900, marginVertical: 20
   },
   statCard: {
-    padding: 12,
-    margin: 5,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
+    backgroundColor: '#172238', borderRadius: 12,
+    borderWidth: 1, borderColor: '#2c3e57',
+    padding: 15, margin: 5, minWidth: 130,
+    flexGrow: 1, alignItems: 'center'
   },
-  statTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  statLabel: {
+    color: '#fff', fontSize: 14,
+    fontWeight: '600', textAlign: 'center'
   },
-  statValue: {
-    fontSize: 22,
+  statNumber: {
+    color: '#fff', fontSize: 30,
+    fontWeight: 'bold', marginTop: 8
   },
+  section: {
+    width: '100%', maxWidth: 700,
+    backgroundColor: '#111a2b',
+    borderRadius: 14, padding: 18, marginBottom: 20
+  },
+  input: {
+    backgroundColor: '#24314b', color: '#fff',
+    borderColor: '#3b4d6b', borderWidth: 1,
+    borderRadius: 8, padding: 12,
+    fontSize: 16, marginVertical: 6, width: '100%'
+  },
+  disabled: { backgroundColor: '#1b263a' },
   gamesGrid: {
-    marginTop: 15,
+    width: '100%', flexDirection: 'row',
+    flexWrap: 'wrap', justifyContent: 'center', gap: 16
   },
   gameCard: {
-    padding: 15,
-    marginBottom: 10,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
+    backgroundColor: '#172238', borderRadius: 14,
+    borderWidth: 1, borderColor: '#2c3e57',
+    padding: 18, gap: 8
   },
   gameTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#fff', fontSize: 21,
+    fontWeight: 'bold', textAlign: 'center'
   },
+  label: { color: '#fff', fontSize: 14 },
+  status: { color: '#fff', textAlign: 'center' },
+  picker: {
+    color: '#fff', backgroundColor: '#24314b',
+    width: '100%'
+  },
+  actions: {
+    flexDirection: 'row', justifyContent: 'center',
+    flexWrap: 'wrap', marginTop: 10
+  }
 })
