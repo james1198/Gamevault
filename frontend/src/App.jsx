@@ -9,6 +9,7 @@ import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
+import MapView, { Marker } from 'react-native-maps'
 
 const API = Platform.OS === 'web'
   ? 'http://localhost:5000'
@@ -97,9 +98,9 @@ export default function App() {
       const query = `
         [out:json][timeout:25];
         (
-          node["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
-          way["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
-          relation["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
+          node["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
+          way["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
+          relation["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
         );
         out center;
       `
@@ -328,6 +329,39 @@ export default function App() {
           title={loadingStores ? 'Searching...' : 'Find Nearby Game Stores'}
           onPress={fetchNearbyStores}
         />
+        
+        
+        {location && (
+          <View style={styles.section}>
+            <Text style={styles.heading}>
+              Nearby Game Stores Map
+            </Text>
+
+            <MapView
+              style={{ width: '100%', height: 300 }}
+              initialRegion={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05
+              }}
+              showsUserLocation={true}
+            >
+              {nearbyStores.map(store => (
+                <Marker
+                  key={store.id}
+                  coordinate={{
+                    latitude: store.latitude,
+                    longitude: store.longitude
+                  }}
+                  title={store.name}
+                />
+              ))}
+            </MapView>
+          </View>
+        )}
+
+        
 
           {nearbyStores.length > 0 && (
       <View style={styles.section}>
