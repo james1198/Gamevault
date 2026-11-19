@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import {
   Alert, Platform, Pressable, SafeAreaView,
@@ -10,8 +9,10 @@ import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'
-
+const API = Platform.OS === 'web'
+  ? 'http://localhost:5000'
+  : 'http://192.168.211.30:5000'
+  
 // Reusable button
 function Button({ title, onPress, type = 'primary' }) {
   return (
