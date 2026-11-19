@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
-import './App.css'
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from 'react-native'
+import { Picker } from '@react-native-picker/picker'
 
 function App() {
   const [game, setGame] = useState([])
@@ -219,138 +220,239 @@ if (!response.ok) {
       }
   }, [game])
 
-  return (
-    <>
-      <h1>GameVault</h1>
-      <button onClick={() => setEditMode(!editMode)}>
-        {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
-      </button>
+    return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: '#0f172a' }}
+      contentContainerStyle={{
+        padding: 20,
+        paddingBottom: 40,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 32,
+          fontWeight: 'bold',
+          color: '#38bdf8',
+          marginBottom: 15,
+        }}
+      >
+        GameVault
+      </Text>
+      <Pressable onPress={() => setEditMode(!editMode)}>
+        <Text>
+          {editMode ? 'Exit Edit Mode' : 'Edit Mode'}
+        </Text>
+      </Pressable>
 
 
-      <p>Welcome to GameVault, your ultimate game collection manager.</p>
-      <div className="stats">
-        <div className="stat-card">
-          <h3>Total Games</h3>
-          <p>{game.length}</p>
-        </div>
+      <Text>Welcome to GameVault, your ultimate game collection manager.</Text>
+      <View style={styles.stats}>
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Total Games</Text>
+          <Text style={styles.statValue}>{game.length}</Text>
+        </View>
 
-        <div className="stat-card">
-          <h3>Currently Playing</h3>
-          <p>{playingGames}</p>
-        </div>
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Currently Playing</Text>
+          <Text style={styles.statValue}>{playingGames}</Text>
+        </View>
 
-        <div className="stat-card">
-          <h3>Completed</h3>
-          <p>{completedGames}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Incomplete</h3>
-          <p>{game.length - completedGames - playingGames}</p>
-        </div>
-      </div>
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Completed</Text>
+          <Text style={styles.statValue}>{completedGames}</Text>
+        </View>
 
-      <input
-        type="text"
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Incomplete</Text>
+          <Text style={styles.statValue}>{game.length - completedGames - playingGames}</Text>
+        </View>
+      </View>
+
+      <TextInput
         value={gameTitle}
-        onChange={(event) => setGameTitle(event.target.value)}
+        onChangeText={setGameTitle}
         placeholder="Game title"
+          style={{
+          borderWidth: 1,
+          borderColor: '#999',
+          borderRadius: 8,
+          padding: 10,
+          marginBottom: 10,
+        }}
       />
-      <input
-        type="text"
+            <TextInput
         value={gameGenre}
-        onChange={(event) => setGameGenre(event.target.value)}
+        onChangeText={setGameGenre}
         placeholder="Game genre"
+        style={{
+          borderWidth: 1,
+          borderColor: '#999',
+          borderRadius: 8,
+          padding: 10,
+          marginBottom: 10,
+        }}
       />
-      <input
-        type="text"
-        value={gamePlatform}
-        onChange={(event) => setGamePlatform(event.target.value)}
-        placeholder="Game platform"
-      />
-      <button onClick={addGame}>Add Game</button>
+              <TextInput
+          value={gamePlatform}
+          onChangeText={setGamePlatform}
+          placeholder="Game platform"
+          style={{
+            borderWidth: 1,
+            borderColor: '#999',
+            borderRadius: 8,
+            padding: 10,
+            marginBottom: 10,
+          }}
+        />
+      <Pressable onPress={addGame}>
+        <Text>Add Game</Text>
+      </Pressable>
 
-      <input
-        type="text"
+      <TextInput
         value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
+        onChangeText={setSearchTerm}
         placeholder="Search games"
+        style={{
+          borderWidth: 1,
+          borderColor: '#999',
+          borderRadius: 8,
+          padding: 10,
+          marginBottom: 10,
+        }}
       />
-      <button onClick={() => setSearchTerm('')}>Clear Search</button>
+      <Pressable onPress={() => setSearchTerm('')}>
+        <Text>Clear Search</Text>
+      </Pressable>
 
-      <p>Current Game Title: {gameTitle}</p>
+      <Text>Current Game Title: {gameTitle}</Text>
 
-      <div className="games-grid">
+      <View style={styles.gamesGrid}>
         {filteredGames.map((currentGame) => (
-          <div className="game-card" key={currentGame.id}>
-            <h3>{currentGame.title}</h3>
+          <View style={styles.gameCard} key={currentGame.id}>
+            <Text style={styles.gameTitle}>{currentGame.title}</Text>
 
-            <input
-              type="text"
+            <TextInput
               value={editedGames[currentGame.id]?.genre ?? currentGame.genre ?? ''}
-              disabled={!editMode}
-              onChange={(event) =>
-                handleGameEdit(currentGame.id, 'genre', event.target.value)
+              editable={editMode}
+              onChangeText={(value) =>
+                handleGameEdit(currentGame.id, 'genre', value)
               }
               placeholder="Genre"
+              style={{
+                borderWidth: 1,
+                borderColor: '#999',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 10,
+              }}
             />
 
-            <input
-              type="text"
+            <TextInput
               value={editedGames[currentGame.id]?.platform ?? currentGame.platform ?? ''}
-              disabled={!editMode}
-              onChange={(event) =>
-                handleGameEdit(currentGame.id, 'platform', event.target.value)
+              editable={editMode}
+              onChangeText={(value) =>
+                handleGameEdit(currentGame.id, 'platform', value)
               }
               placeholder="Platform"
+              style={{
+                borderWidth: 1,
+                borderColor: '#999',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 10,
+              }}
             />
 
-            <p>
+            <Text>
               Status: {editedGames[currentGame.id]?.status ?? currentGame.status}
-            </p>
-
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={
-              editedGames[currentGame.id]?.rating !== undefined
-                ? (editedGames[currentGame.id].rating ?? '')
-                : (currentGame.rating ?? '')
-            }
-              disabled={!editMode}
-              onChange={(event) =>
+            </Text>
+            <TextInput
+              value={String(
+                editedGames[currentGame.id]?.rating !== undefined
+                  ? (editedGames[currentGame.id].rating ?? '')
+                  : (currentGame.rating ?? '')
+              )}
+              editable={editMode}
+              keyboardType="numeric"
+              onChangeText={(value) =>
                 handleGameEdit(
                   currentGame.id,
                   'rating',
-                  event.target.value === '' ? null : Number(event.target.value),
+                  value === '' ? null : Number(value)
                 )
               }
-              placeholder="Rating"
+              placeholder="Rating (1-10)"
+              style={{
+                borderWidth: 1,
+                borderColor: '#999',
+                borderRadius: 8,
+                padding: 10,
+                marginBottom: 10,
+              }}
             />
 
-            <select
-              value={editedGames[currentGame.id]?.status ?? currentGame.status}
-              disabled={!editMode}
-              onChange={(event) =>
-              handleGameEdit(currentGame.id, 'status', event.target.value)
-              }
-            >
-              <option value="Want to Play">Want to Play</option>
-              <option value="Currently Playing">Currently Playing</option>
-              <option value="Completed">Completed</option>
-            </select>
+            <View>
+              <Text>Status:</Text>
+              <Picker
+                selectedValue={editedGames[currentGame.id]?.status ?? currentGame.status}
+                disabled={!editMode}
+                onValueChange={(value) => handleGameEdit(currentGame.id, 'status', value)}
+              >
+                <Picker.Item label="Want to Play" value="Want to Play" />
+                <Picker.Item label="Currently Playing" value="Currently Playing" />
+                <Picker.Item label="Completed" value="Completed" />
+              </Picker>
+            </View>
 
             {editMode && (
-              <button onClick={() => deleteGame(currentGame.id)}>Delete</button>
+              <Pressable onPress={() => deleteGame(currentGame.id)}>
+                <Text>Delete</Text>
+              </Pressable>
             )}
             {editMode && (
-              <button onClick={() => saveGameChanges(currentGame.id)}>Save</button>
+              <Pressable onPress={() => saveGameChanges(currentGame.id)}>
+                <Text>Save</Text>
+              </Pressable>
             )}
-          </div>
+          </View>
         ))}
-      </div>
-    </>
+      </View>
+    </ScrollView>
   )
 }
 
 export default App
+
+const styles = StyleSheet.create({
+  stats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 15,
+  },
+  statCard: {
+    padding: 12,
+    margin: 5,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+  },
+  statTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  statValue: {
+    fontSize: 22,
+  },
+  gamesGrid: {
+    marginTop: 15,
+  },
+  gameCard: {
+    padding: 15,
+    marginBottom: 10,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+  },
+  gameTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+})

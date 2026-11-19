@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "GameVault",
+    "slug": "gamevault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "web"]
+  }
+}
