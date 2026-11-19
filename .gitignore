@@ -19,3 +19,6 @@ coverage/
 
 # Logs
 *.log
+
+# Expo local state
+.expo/

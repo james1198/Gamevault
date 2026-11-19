@@ -8,11 +8,12 @@ import { Picker } from '@react-native-picker/picker'
 import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
+import * as Location from 'expo-location'
 
 const API = Platform.OS === 'web'
   ? 'http://localhost:5000'
   : 'http://192.168.211.30:5000'
-  
+
 // Reusable button
 function Button({ title, onPress, type = 'primary' }) {
   return (
@@ -51,12 +52,90 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [editMode, setEditMode] = useState(false)
   const [edits, setEdits] = useState({})
+  const [location, setLocation] = useState(null)
+  const [loadingLocation, setLoadingLocation] = useState(null)
+  const [nearbyStores, setNearbyStores] = useState([])
+  const [loadingStores, setLoadingStores] = useState(false)
 
   // Notifications
   function notify(message) {
     if (Platform.OS === 'web') globalThis.alert(message)
     else Alert.alert('GameVault', message)
   }
+
+  async function getCurrentLocation() {
+    setLoadingLocation(true)
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+
+      if (status !== 'granted') {
+        notify('Location permission denied')
+        return
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      })
+
+      setLocation(currentLocation.coords)
+    } catch (error) {
+      notify('Unable to get location')
+    } finally {
+      setLoadingLocation(false)
+    }
+  }
+
+  async function fetchNearbyStores() {
+    if (!location) {
+      return notify('Please get your location first')
+    }
+
+    setLoadingStores(true)
+
+    try {
+      const query = `
+        [out:json][timeout:25];
+        (
+          node["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
+          way["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
+          relation["shop"="video_game"](around:5000,${location.latitude},${location.longitude});
+        );
+        out center;
+      `
+
+      const response = await fetch(
+        'https://overpass-api.de/api/interpreter',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: `data=${encodeURIComponent(query)}`
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Store search failed')
+      }
+
+      const data = await response.json()
+
+      const stores = data.elements.map(store => ({
+        id: store.id,
+        name: store.tags?.name || 'Unnamed Game Store',
+        latitude: store.lat ?? store.center?.lat,
+        longitude: store.lon ?? store.center?.lon
+      }))
+
+      setNearbyStores(stores)
+    } catch (error) {
+      notify('Unable to find nearby game stores')
+    } finally {
+      setLoadingStores(false)
+    }
+  }
+        
 
   // Load games from SQLite backend
   useEffect(() => {
@@ -226,6 +305,49 @@ export default function App() {
         <Text style={styles.subtitle}>
           Your ultimate game collection manager
         </Text>
+
+        <Button
+          title={loadingLocation ? 'Loading Location...' : 'Get Current Location'}
+          onPress={getCurrentLocation}
+        />
+
+        {location && (
+          <View style={styles.section}>
+            <Text style={styles.heading}>Current Location</Text>
+
+            <Text style={styles.subtitle}>
+              lattitude: {location.latitude}
+              </Text>
+            <Text style={styles.subtitle}>
+               longitude: {location.longitude}
+            </Text>
+          </View>
+        )}
+
+        <Button
+          title={loadingStores ? 'Searching...' : 'Find Nearby Game Stores'}
+          onPress={fetchNearbyStores}
+        />
+
+          {nearbyStores.length > 0 && (
+      <View style={styles.section}>
+        <Text style={styles.heading}>Nearby Game Stores</Text>
+
+        {nearbyStores.map(store => (
+          <View key={store.id}>
+            <Text style={styles.label}>{store.name}</Text>
+
+            <Text style={styles.subtitle}>
+              Latitude: {store.latitude}
+            </Text>
+
+            <Text style={styles.subtitle}>
+              Longitude: {store.longitude}
+            </Text>
+          </View>
+        ))}
+      </View>
+    )}
 
         <Button
           title={editMode ? 'Exit Edit Mode' : 'Edit Mode'}
