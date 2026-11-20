@@ -1,16 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
-  Alert, Platform, Pressable, SafeAreaView,
+  Alert, Animated, Platform, Pressable, Linking,
   ScrollView, StyleSheet, Text, TextInput,
   useWindowDimensions, View
 } from 'react-native'
+import {
+  SafeAreaView,
+  SafeAreaProvider
+} from 'react-native-safe-area-context'
+
 import { Picker } from '@react-native-picker/picker'
 import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
-import MapView, { Marker } from 'react-native-maps'
+import GameStoreMap from './GameStoreMap'
 
 
 const API = Platform.OS === 'web'
@@ -79,6 +84,31 @@ export default function App() {
   const [nearbyStores, setNearbyStores] = useState([])
   const [loadingStores, setLoadingStores] = useState(false)
   const [isTracking, setIsTracking] = useState(false)
+
+  UseEffect(() => {
+    function handleDeepLink(event) {
+      console.log('GameVault received link:', event.url)
+
+      if (event.url.startsWith('gamevault://')) {
+        notify('GameVault opened via deep link: ' + event.url)
+      }
+    }
+      const subscription = Linking.addEventListener('url', handleDeepLink)
+      Linking.getInitialURL().then(url => {
+    if (url) handleDeepLink({ url })
+  })
+
+  return () => subscription.remove()
+}, [])
+  const titleOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.timing(titleOpacity, {
+      toValue: 1,
+      duration: 2000,
+      useNativeDriver: Platform.OS !== 'web'
+    }).start()
+  }, [titleOpacity])
 
   // Notifications
   function notify(message) {
@@ -370,14 +400,20 @@ async function stopBackgroundTracking() {
     ['Incomplete', games.length - completed - playing]
   ]
 
+
   return (
+    <SafeAreaProvider>
     <SafeAreaView style={styles.screen}>
+
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <Text style={styles.title}>GameVault</Text>
+        <Animated.Text 
+        style={[styles.title, { opacity: titleOpacity }]}>
+          GameVault
+        </Animated.Text>
         <Text style={styles.subtitle}>
           Your ultimate game collection manager
         </Text>
@@ -428,28 +464,10 @@ async function stopBackgroundTracking() {
             <Text style={styles.heading}>
               Nearby Game Stores Map
             </Text>
-
-            <MapView
-              style={{ width: '100%', height: 300 }}
-              initialRegion={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05
-              }}
-              showsUserLocation={true}
-            >
-              {nearbyStores.map(store => (
-                <Marker
-                  key={store.id}
-                  coordinate={{
-                    latitude: store.latitude,
-                    longitude: store.longitude
-                  }}
-                  title={store.name}
-                />
-              ))}
-            </MapView>
+            <GameStoreMap
+              location={location}
+              nearbyStores={nearbyStores}
+            />
           </View>
         )}
 
@@ -600,6 +618,7 @@ async function stopBackgroundTracking() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </SafeAreaProvider>
   )
 }
 

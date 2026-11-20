@@ -3,6 +3,7 @@
     "name": "GameVault",
     "slug": "gamevault",
     "version": "1.0.0",
+    "scheme": "gamevault",
     "orientation": "portrait",
     "platforms": ["ios", "web"],
     "ios": {
