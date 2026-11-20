@@ -4,6 +4,24 @@
     "slug": "gamevault",
     "version": "1.0.0",
     "orientation": "portrait",
-    "platforms": ["ios", "web"]
+    "platforms": ["ios", "web"],
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": ["location"],
+        "NSLocationWhenInUseUsageDescription": "GameVault uses your location to find nearby game stores.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "GameVault uses background location only when you enable tracking."
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "isIosBackgroundLocationEnabled": true,
+          "isIosAlwaysAndWhenInUsePermissionEnabled": true,
+          "locationWhenInUsePermission": "GameVault uses your location to find nearby game stores.",
+          "locationAlwaysAndWhenInUsePermission": "GameVault uses background location only when you enable tracking."
+        }
+      ]
+    ]
   }
 }

@@ -9,11 +9,32 @@ import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
+import * as TaskManager from 'expo-task-manager'
 import MapView, { Marker } from 'react-native-maps'
+
 
 const API = Platform.OS === 'web'
   ? 'http://localhost:5000'
-  : 'http://192.168.211.30:5000'
+  : 'http://10.0.0.243:5000'
+
+const BACKGROUND_LOCATION_TASK = 'GameVault-Background-Location'
+
+if  (Platform.OS !== 'web') {
+  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, ({ data, error }) => {
+    if (error) {
+      console.log('Background location task error:', error)
+      return
+    }
+
+    const latestlocation = data?.locations?.[0]
+    if (latestlocation) {
+      console.log('Background location:', 
+        latestlocation.latitude, 
+        latestlocation.longitude)
+    }
+  })
+}
+
 
 // Reusable button
 function Button({ title, onPress, type = 'primary' }) {
@@ -57,6 +78,7 @@ export default function App() {
   const [loadingLocation, setLoadingLocation] = useState(null)
   const [nearbyStores, setNearbyStores] = useState([])
   const [loadingStores, setLoadingStores] = useState(false)
+  const [isTracking, setIsTracking] = useState(false)
 
   // Notifications
   function notify(message) {
@@ -86,6 +108,59 @@ export default function App() {
       setLoadingLocation(false)
     }
   }
+  
+
+async function startBackgroundTracking() {
+  if (Platform.OS === 'web') {
+    return notify('Background tracking requires an iOS development build.')
+  }
+
+  try {
+    const foreground = await Location.requestForegroundPermissionsAsync()
+
+    if (foreground.status !== 'granted') {
+      return notify('Foreground location permission is required.')
+    }
+
+    const background = await Location.requestBackgroundPermissionsAsync()
+
+    if (background.status !== 'granted') {
+      return notify('Background location permission is required.')
+    }
+
+    await Location.startLocationUpdatesAsync(
+      BACKGROUND_LOCATION_TASK,
+      {
+        accuracy: Location.Accuracy.Balanced,
+        distanceInterval: 100,
+        showsBackgroundLocationIndicator: true
+      }
+    )
+
+    setIsTracking(true)
+    notify('Background tracking started.')
+  } catch (error) {
+    notify('Unable to start tracking: ' + error.message)
+  }
+}
+
+async function stopBackgroundTracking() {
+  try {
+    const running = await Location.hasStartedLocationUpdatesAsync(
+      BACKGROUND_LOCATION_TASK
+    )
+
+    if (running) {
+      await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK)
+    }
+
+    setIsTracking(false)
+    notify('Background tracking stopped.')
+  } catch (error) {
+    notify('Unable to stop tracking: ' + error.message)
+  }
+}
+
 
   async function fetchNearbyStores() {
     if (!location) {
@@ -311,6 +386,23 @@ export default function App() {
           title={loadingLocation ? 'Loading Location...' : 'Get Current Location'}
           onPress={getCurrentLocation}
         />
+
+        <View style={{ width: '100%', maxWidth: 700 }}>
+          <Button
+            title="Start Background Tracking"
+            onPress={startBackgroundTracking}
+          />
+
+          <Button
+            title="Stop Background Tracking"
+            onPress={stopBackgroundTracking}
+          />
+
+          <Text style={styles.subtitle}>
+            Tracking: {isTracking ? 'Active' : 'Inactive'}
+          </Text>
+        </View>
+
 
         {location && (
           <View style={styles.section}>
