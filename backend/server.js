@@ -83,6 +83,11 @@ app.post("/api/games", (req, res) => {
 
 app.put("/api/games/:id", (req, res) => {
   const { id } = req.params;
+  if (!/^[1-9]\d*$/.test(id)) {
+    return res.status(400).json({
+      error: "Invalid game ID"
+    });
+  }
   const {
     title,
     genre = "",
@@ -137,10 +142,18 @@ app.put("/api/games/:id", (req, res) => {
   res.json(updatedGame);
 });
 
+
 app.delete("/api/games/:id", (req, res) => {
+  if (!/^[1-9]\d*$/.test(req.params.id)) {
+    return res.status(400).json({
+      error: "Invalid game ID."
+    });
+  }
+
   const result = db.prepare(
     "DELETE FROM games WHERE id = ?"
   ).run(req.params.id);
+
 
   if (result.changes === 0) {
     return res.status(404).json({
@@ -152,6 +165,15 @@ app.delete("/api/games/:id", (req, res) => {
     message: "Game deleted successfully."
   });
 });
+
+
+
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    error: "API endpoint not found."
+  });
+});
+
 
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400) {

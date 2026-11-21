@@ -10,7 +10,12 @@ import {
 } from 'react-native-safe-area-context'
 
 import { Picker } from '@react-native-picker/picker'
-import { loadGames, findGame } from './algorithms/gameArray'
+import {
+  loadGames,
+  findGame,
+  addGame as arrayAddGame,
+  removeGame as arrayRemoveGame
+} from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
@@ -31,12 +36,6 @@ if  (Platform.OS !== 'web') {
       console.log('Background location task error:', error)
       return
     }
-
-if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
-  return notify(
-    'Background tracking requires a development build, not Expo Go.'
-  )
-}
 
     const latestlocation = data?.locations?.[0]
     if (latestlocation) {
@@ -78,6 +77,9 @@ export default function App() {
   const { width } = useWindowDimensions()
   const wide = width > 900
   const scrollRef = useRef(null)
+  const gamesPosition = useRef(0)
+  const pendingGamesLink = useRef(false)
+
 
   // State
   const [games, setGames] = useState([])
@@ -97,28 +99,31 @@ export default function App() {
     function handleDeepLink(event) {
       console.log('GameVault received link:', event.url)
 
-      
-  if (event.url.startsWith('gamevault://')) {
-    notify('GameVault opened via deep link: ' + event.url)
-
-    if (event.url.startsWith('gamevault://games')) {
-      scrollRef.current?.scrollTo({
-        y: gamesPosition.current,
-        animated: true
-      })
-    }
-}
-if (event.url.startsWith('gamevault://')) {
+      if (event.url.startsWith('gamevault://')) {
         notify('GameVault opened via deep link: ' + event.url)
+
+        if (event.url.startsWith('gamevault://games')) {
+          pendingGamesLink.current = true
+
+          if (scrollRef.current && gamesPosition.current > 0) {
+            scrollRef.current.scrollTo({
+              y: gamesPosition.current,
+              animated: true
+            })
+
+            pendingGamesLink.current = false
+          }
+        }
       }
     }
-      const subscription = Linking.addEventListener('url', handleDeepLink)
-      Linking.getInitialURL().then(url => {
-    if (url) handleDeepLink({ url })
-  })
 
-  return () => subscription.remove()
-}, [])
+    const subscription = Linking.addEventListener('url', handleDeepLink)
+    Linking.getInitialURL().then(url => {
+      if (url) handleDeepLink({ url })
+    })
+
+    return () => subscription.remove()
+  }, [])
   const titleOpacity = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
@@ -175,6 +180,13 @@ async function startBackgroundTracking() {
   if (Platform.OS === 'web') {
     return notify('Background tracking requires an iOS development build.')
   }
+
+if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+  return notify(
+    'Background tracking requires a development build, not Expo Go.'
+  )
+}
+
 
   try {
     const foreground = await Location.requestForegroundPermissionsAsync()
@@ -300,6 +312,7 @@ async function stopBackgroundTracking() {
     console.log('Array games:', games)
     console.log('Chaining:', chaining.getAllGames())
     console.log('Linear:', linear.getAllGames())
+    
 
     if (games.length > 0) {
       const id = games[0].id
@@ -588,10 +601,23 @@ async function stopBackgroundTracking() {
           </Text>
         </View>
 
-        {/* Game Collection */}
-        <View onLayout={(layoutEvent) => {
-          gamesPosition.current = layoutEvent.nativeEvent.layout.y
-        }}>
+        {/* Game Collection */}  
+        <View
+          style={styles.gamesGrid}
+          onLayout={(layoutEvent) => {
+            gamesPosition.current = layoutEvent.nativeEvent.layout.y
+
+            if (pendingGamesLink.current) {
+              scrollRef.current?.scrollTo({
+                y: gamesPosition.current,
+                animated: true
+              })
+
+              pendingGamesLink.current = false
+            }
+          }}
+        >
+
           {filtered.length === 0 && (
             <Text style={styles.subtitle}>
               {search ? 'No matching games.' : 'Your library is empty.'}
