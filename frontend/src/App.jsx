@@ -85,7 +85,7 @@ export default function App() {
   const [loadingStores, setLoadingStores] = useState(false)
   const [isTracking, setIsTracking] = useState(false)
 
-  UseEffect(() => {
+  useEffect(() => {
     function handleDeepLink(event) {
       console.log('GameVault received link:', event.url)
 
@@ -134,11 +134,23 @@ export default function App() {
       setLocation(currentLocation.coords)
     } catch (error) {
       notify('Unable to get location')
+
     } finally {
       setLoadingLocation(false)
     }
   }
-  
+
+
+  function testDeepLink() {
+    if (Platform.OS === 'web') {
+      notify('Deep linking must be tested in the iPhone development build.')
+      return
+    }
+
+    Linking.openURL('gamevault://games').catch(error => {
+      notify('Unable to open deep link: ' + error.message)
+    })
+  }
 
 async function startBackgroundTracking() {
   if (Platform.OS === 'web') {
@@ -275,6 +287,18 @@ async function stopBackgroundTracking() {
       const repetitions = 10000
 
       console.log('Array search:', findGame(id))
+
+
+      const arrayStart = performance.now()
+
+      for (let i = 0; i < repetitions; i++) {
+        findGame(id)
+      }
+
+      const arrayTime = performance.now() - arrayStart
+
+      console.log('Array search time:', arrayTime, 'ms')
+
 
       const start1 = performance.now()
       for (let i = 0; i < repetitions; i++) chaining.get(id)
@@ -709,3 +733,4 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap', marginTop: 10
   }
 })
+
