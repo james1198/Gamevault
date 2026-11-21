@@ -16,6 +16,7 @@ import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
 import * as TaskManager from 'expo-task-manager'
 import GameStoreMap from './GameStoreMap'
+import Constants, { ExecutionEnvironment } from 'expo-constants'
 
 
 const API = Platform.OS === 'web'
@@ -31,11 +32,17 @@ if  (Platform.OS !== 'web') {
       return
     }
 
+if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+  return notify(
+    'Background tracking requires a development build, not Expo Go.'
+  )
+}
+
     const latestlocation = data?.locations?.[0]
     if (latestlocation) {
       console.log('Background location:', 
-        latestlocation.latitude, 
-        latestlocation.longitude)
+        latestlocation.coords.latitude, 
+        latestlocation.coords.longitude)
     }
   })
 }
@@ -70,6 +77,7 @@ function Field({ value, onChangeText, placeholder, editable = true }) {
 export default function App() {
   const { width } = useWindowDimensions()
   const wide = width > 900
+  const scrollRef = useRef(null)
 
   // State
   const [games, setGames] = useState([])
@@ -89,7 +97,18 @@ export default function App() {
     function handleDeepLink(event) {
       console.log('GameVault received link:', event.url)
 
-      if (event.url.startsWith('gamevault://')) {
+      
+  if (event.url.startsWith('gamevault://')) {
+    notify('GameVault opened via deep link: ' + event.url)
+
+    if (event.url.startsWith('gamevault://games')) {
+      scrollRef.current?.scrollTo({
+        y: gamesPosition.current,
+        animated: true
+      })
+    }
+}
+if (event.url.startsWith('gamevault://')) {
         notify('GameVault opened via deep link: ' + event.url)
       }
     }
@@ -430,6 +449,7 @@ async function stopBackgroundTracking() {
     <SafeAreaView style={styles.screen}>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
@@ -569,7 +589,9 @@ async function stopBackgroundTracking() {
         </View>
 
         {/* Game Collection */}
-        <View style={styles.gamesGrid}>
+        <View onLayout={(layoutEvent) => {
+          gamesPosition.current = layoutEvent.nativeEvent.layout.y
+        }}>
           {filtered.length === 0 && (
             <Text style={styles.subtitle}>
               {search ? 'No matching games.' : 'Your library is empty.'}
