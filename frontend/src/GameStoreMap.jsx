@@ -1,9 +1,9 @@
-import mapView, {marker} from 'react-native-maps'
+import MapView, { Marker } from 'react-native-maps'
 
 export default function GameStoreMap({ location, nearbyStores }) {
     return (
-        <mapView
-            style={{ flex: 1 }}
+        <MapView
+            style={{ width: '100%', height: 300 }}
             initialRegion={{
                 latitude: location.latitude,
                 longitude: location.longitude,
@@ -11,7 +11,7 @@ export default function GameStoreMap({ location, nearbyStores }) {
                 longitudeDelta: 0.0421,
             }}
         >
-            <marker
+            <Marker
                 coordinate={{
                     latitude: location.latitude,
                     longitude: location.longitude,
@@ -20,7 +20,7 @@ export default function GameStoreMap({ location, nearbyStores }) {
                 pinColor="blue"
             />
             {nearbyStores.map((store, index) => (
-                <marker
+                <Marker
                     key={index}
                     coordinate={{
                         latitude: store.latitude,
@@ -30,6 +30,6 @@ export default function GameStoreMap({ location, nearbyStores }) {
                     description={store.address}
                 />
             ))}
-        </mapView>
+        </MapView>
     )
-}  
+}

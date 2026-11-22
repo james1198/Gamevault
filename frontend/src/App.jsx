@@ -297,6 +297,13 @@ async function stopBackgroundTracking() {
       .catch(() => notify('Unable to load games'))
   }, [])
 
+
+  function createTestGames(count) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 100000,
+    title: `Test Game ${i + 1}`
+  }))
+}
   // DSA: Array and two hash table implementations
   useEffect(() => {
     loadGames(games)
@@ -312,13 +319,34 @@ async function stopBackgroundTracking() {
     console.log('Array games:', games)
     console.log('Chaining:', chaining.getAllGames())
     console.log('Linear:', linear.getAllGames())
-    
+
+    const testGames = createTestGames(1000)
+    console.log('First test game:', testGames[0])
+    console.log('Last test game:', testGames[999])
+    loadGames(testGames)
+    const testChaining = new HashTable(2003)
+    const testLinear = new linearHashTable(2003)
+
+    testGames.forEach(game => {
+      testChaining.set(game.id, game)
+      testLinear.set(game.id, game)
+    })
+
+    console.log('temporary benchmark:', testGames.length)
 
     if (games.length > 0) {
-      const id = games[0].id
-      const repetitions = 10000
+      const id = testGames[999].id
+      const repetitions = 1000000
 
+      console.log('Searching for ID:', id)
+      console.log('ID type:', typeof id)
+      console.log('First test game found:', findGame(100000))
+      console.log('Last test game found:', findGame(100999))
       console.log('Array search:', findGame(id))
+      console.log('Chaining search:', testChaining.get(id))
+      console.log('Linear probing search:', testLinear.get(id))
+      console.log('Linear hash starting index:', testLinear.hash(id))
+      console.log('Linear table capacity:', testLinear.size)
 
 
       const arrayStart = performance.now()
@@ -333,12 +361,15 @@ async function stopBackgroundTracking() {
 
 
       const start1 = performance.now()
-      for (let i = 0; i < repetitions; i++) chaining.get(id)
+      for (let i = 0; i < repetitions; i++) testChaining.get(id)
       const chainingTime = performance.now() - start1
 
       const start2 = performance.now()
-      for (let i = 0; i < repetitions; i++) linear.get(id)
+      for (let i = 0; i < repetitions; i++) testLinear.get(id)
       const linearTime = performance.now() - start2
+
+      console.log('Chaining search time:', chainingTime, 'ms')
+      console.log('Linear probing search time:', linearTime, 'ms')
 
       console.log('Chaining time:', chainingTime, 'ms')
       console.log('Linear time:', linearTime, 'ms')
