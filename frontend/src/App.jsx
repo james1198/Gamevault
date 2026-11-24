@@ -77,8 +77,6 @@ export default function App() {
   const scrollRef = useRef(null)
   const gamesPosition = useRef(0)
   const pendingGamesLink = useRef(false)
-
-
   const [games, setGames] = useState([])
   const [title, setTitle] = useState('')
   const [genre, setGenre] = useState('')
