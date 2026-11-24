@@ -26,7 +26,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants'
 
 const API = Platform.OS === 'web'
   ? 'http://localhost:5000'
-  : 'http://10.0.0.243:5000'
+  : 'http://192.168.211.51:5000'
 
 const BACKGROUND_LOCATION_TASK = 'GameVault-Background-Location'
 
@@ -47,7 +47,6 @@ if  (Platform.OS !== 'web') {
 }
 
 
-// Reusable button
 function Button({ title, onPress, type = 'primary' }) {
   return (
     <Pressable
@@ -59,7 +58,6 @@ function Button({ title, onPress, type = 'primary' }) {
   )
 }
 
-// Reusable text input
 function Field({ value, onChangeText, placeholder, editable = true }) {
   return (
     <TextInput
@@ -81,7 +79,6 @@ export default function App() {
   const pendingGamesLink = useRef(false)
 
 
-  // State
   const [games, setGames] = useState([])
   const [title, setTitle] = useState('')
   const [genre, setGenre] = useState('')
@@ -134,7 +131,6 @@ export default function App() {
     }).start()
   }, [titleOpacity])
 
-  // Notifications
   function notify(message) {
     if (Platform.OS === 'web') globalThis.alert(message)
     else Alert.alert('GameVault', message)
@@ -286,7 +282,6 @@ async function stopBackgroundTracking() {
   }
         
 
-  // Load games from SQLite backend
   useEffect(() => {
     fetch(`${API}/api/games`)
       .then(res => {
@@ -298,13 +293,6 @@ async function stopBackgroundTracking() {
   }, [])
 
 
-  function createTestGames(count) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i + 100000,
-    title: `Test Game ${i + 1}`
-  }))
-}
-  // DSA: Array and two hash table implementations
   useEffect(() => {
     loadGames(games)
 
@@ -316,67 +304,8 @@ async function stopBackgroundTracking() {
       linear.set(game.id, game)
     })
 
-    console.log('Array games:', games)
-    console.log('Chaining:', chaining.getAllGames())
-    console.log('Linear:', linear.getAllGames())
-
-    const testGames = createTestGames(1000)
-    console.log('First test game:', testGames[0])
-    console.log('Last test game:', testGames[999])
-    loadGames(testGames)
-    const testChaining = new HashTable(2003)
-    const testLinear = new linearHashTable(2003)
-
-    testGames.forEach(game => {
-      testChaining.set(game.id, game)
-      testLinear.set(game.id, game)
-    })
-
-    console.log('temporary benchmark:', testGames.length)
-
-    if (games.length > 0) {
-      const id = testGames[999].id
-      const repetitions = 1000000
-
-      console.log('Searching for ID:', id)
-      console.log('ID type:', typeof id)
-      console.log('First test game found:', findGame(100000))
-      console.log('Last test game found:', findGame(100999))
-      console.log('Array search:', findGame(id))
-      console.log('Chaining search:', testChaining.get(id))
-      console.log('Linear probing search:', testLinear.get(id))
-      console.log('Linear hash starting index:', testLinear.hash(id))
-      console.log('Linear table capacity:', testLinear.size)
-
-
-      const arrayStart = performance.now()
-
-      for (let i = 0; i < repetitions; i++) {
-        findGame(id)
-      }
-
-      const arrayTime = performance.now() - arrayStart
-
-      console.log('Array search time:', arrayTime, 'ms')
-
-
-      const start1 = performance.now()
-      for (let i = 0; i < repetitions; i++) testChaining.get(id)
-      const chainingTime = performance.now() - start1
-
-      const start2 = performance.now()
-      for (let i = 0; i < repetitions; i++) testLinear.get(id)
-      const linearTime = performance.now() - start2
-
-      console.log('Chaining search time:', chainingTime, 'ms')
-      console.log('Linear probing search time:', linearTime, 'ms')
-
-      console.log('Chaining time:', chainingTime, 'ms')
-      console.log('Linear time:', linearTime, 'ms')
-    }
   }, [games])
 
-  // API helper
   async function request(path, method = 'GET', data) {
     const response = await fetch(`${API}/api/games${path}`, {
       method,
@@ -388,7 +317,6 @@ async function stopBackgroundTracking() {
     return method === 'DELETE' ? null : response.json()
   }
 
-  // Add a new game
   async function addGame() {
     if (!title.trim()) return notify('Enter a game title')
 
@@ -410,7 +338,6 @@ async function stopBackgroundTracking() {
     }
   }
 
-  // Store unsaved edits
   function editGame(id, field, value) {
     setEdits(previous => ({
       ...previous,
@@ -418,7 +345,6 @@ async function stopBackgroundTracking() {
     }))
   }
 
-  // Save changes
   async function saveGame(id) {
     const changes = edits[id]
     if (!changes) return
@@ -451,7 +377,6 @@ async function stopBackgroundTracking() {
     }
   }
 
-  // Delete a game
   async function deleteGame(id) {
     try {
       await request(`/${id}`, 'DELETE')
@@ -473,7 +398,6 @@ async function stopBackgroundTracking() {
     }
   }
 
-  // Statistics and search
   const completed = games.filter(g => g.status === 'Completed').length
   const playing = games.filter(g => g.status === 'Currently Playing').length
   const filtered = games.filter(g =>
@@ -702,8 +626,8 @@ async function stopBackgroundTracking() {
                   style={styles.picker}
                 >
                   <Picker.Item label="Want to Play" value="Want to Play" />
-                  <Picker.Item label="Currently Playing"
-                    value="Currently Playing" />
+                  <Picker.Item label="Play Next" value="Play Next"/>
+                  <Picker.Item label="Currently Playing "value="Currently Playing" />
                   <Picker.Item label="Completed" value="Completed" />
                 </Picker>
 
@@ -725,7 +649,6 @@ async function stopBackgroundTracking() {
   )
 }
 
-// Shared React Native styles
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0c1220' },
   container: {
