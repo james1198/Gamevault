@@ -626,8 +626,8 @@ async function stopBackgroundTracking() {
                   style={styles.picker}
                 >
                   <Picker.Item label="Want to Play" value="Want to Play" />
-                  <Picker.Item label="Play Next" value="Play Next"/>
-                  <Picker.Item label="Currently Playing "value="Currently Playing" />
+                  <Picker.Item label="Currently Playing"
+                    value="Currently Playing" />
                   <Picker.Item label="Completed" value="Completed" />
                 </Picker>
 
