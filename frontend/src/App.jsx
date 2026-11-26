@@ -26,8 +26,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants'
 
 const API = Platform.OS === 'web'
   ? 'http://localhost:5000'
-  : 'http://192.168.211.51:5000'
-
+  : 'http://10.0.0.243:5000'
 const BACKGROUND_LOCATION_TASK = 'GameVault-Background-Location'
 
 if  (Platform.OS !== 'web') {
@@ -237,43 +236,40 @@ async function stopBackgroundTracking() {
     setLoadingStores(true)
 
     try {
-      const query = `
-        [out:json][timeout:25];
-        (
-          node["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
-          way["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
-          relation["shop"="video_games"](around:5000,${location.latitude},${location.longitude});
-        );
-        out center;
-      `
+     const controller = new AbortController()
+const timeout = setTimeout(() => controller.abort(), 15000)
 
-      const response = await fetch(
-        'https://overpass-api.de/api/interpreter',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `data=${encodeURIComponent(query)}`
-        }
-      )
+const url = `https://nominatim.openstreetmap.org/search?format=json&q=video%20game%20store&viewbox=${location.longitude - 0.2},${location.latitude + 0.2},${location.longitude + 0.2},${location.latitude - 0.2}&bounded=1&limit=10`
 
-      if (!response.ok) {
-        throw new Error('Store search failed')
-      }
+const response = await fetch(url, {
+  signal: controller.signal,
+  headers: {
+    'Accept': 'application/json',
+    'User-Agent': 'GameVault-StudentProject/1.0'
+  }
+}).finally(() => clearTimeout(timeout))
 
-      const data = await response.json()
+if (!response.ok) {
+  throw new Error('Store search failed')
+}
 
-      const stores = data.elements.map(store => ({
-        id: store.id,
-        name: store.tags?.name || 'Unnamed Game Store',
-        latitude: store.lat ?? store.center?.lat,
-        longitude: store.lon ?? store.center?.lon
-      }))
+const data = await response.json()
 
-      setNearbyStores(stores)
+const stores = data.map(store => ({
+  id: store.place_id,
+  name: store.display_name.split(',')[0],
+  latitude: Number(store.lat),
+  longitude: Number(store.lon)
+}))
+
+setNearbyStores(stores)
+
+if (stores.length === 0) {
+  notify('No nearby game stores found')
+}
+
     } catch (error) {
-      notify('Unable to find nearby game stores')
+      notify('Store search error: ' + error.message)
     } finally {
       setLoadingStores(false)
     }
