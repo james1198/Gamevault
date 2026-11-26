@@ -8,14 +8,8 @@ import {
   SafeAreaView,
   SafeAreaProvider
 } from 'react-native-safe-area-context'
-
 import { Picker } from '@react-native-picker/picker'
-import {
-  loadGames,
-  findGame,
-  addGame as arrayAddGame,
-  removeGame as arrayRemoveGame
-} from './algorithms/gameArray'
+import { loadGames } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
@@ -84,14 +78,13 @@ export default function App() {
   const [editMode, setEditMode] = useState(false)
   const [edits, setEdits] = useState({})
   const [location, setLocation] = useState(null)
-  const [loadingLocation, setLoadingLocation] = useState(null)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [nearbyStores, setNearbyStores] = useState([])
   const [loadingStores, setLoadingStores] = useState(false)
   const [isTracking, setIsTracking] = useState(false)
 
   useEffect(() => {
     function handleDeepLink(event) {
-      console.log('GameVault received link:', event.url)
 
       if (event.url.startsWith('gamevault://')) {
         notify('GameVault opened via deep link: ' + event.url)
@@ -157,18 +150,6 @@ export default function App() {
     }
   }
 
-
-  function testDeepLink() {
-    if (Platform.OS === 'web') {
-      notify('Deep linking must be tested in the iPhone development build.')
-      return
-    }
-
-    Linking.openURL('gamevault://games').catch(error => {
-      notify('Unable to open deep link: ' + error.message)
-    })
-  }
-
 async function startBackgroundTracking() {
   if (Platform.OS === 'web') {
     return notify('Background tracking requires an iOS development build.')
@@ -179,7 +160,6 @@ if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
     'Background tracking requires a development build, not Expo Go.'
   )
 }
-
 
   try {
     const foreground = await Location.requestForegroundPermissionsAsync()
@@ -451,7 +431,7 @@ if (stores.length === 0) {
             <Text style={styles.heading}>Current Location</Text>
 
             <Text style={styles.subtitle}>
-              lattitude: {location.latitude}
+              Latitude: {location.latitude}
               </Text>
             <Text style={styles.subtitle}>
                longitude: {location.longitude}
@@ -463,8 +443,7 @@ if (stores.length === 0) {
           title={loadingStores ? 'Searching...' : 'Find Nearby Game Stores'}
           onPress={fetchNearbyStores}
         />
-        
-        
+
         {location && (
           <View style={styles.section}>
             <Text style={styles.heading}>
@@ -663,7 +642,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', textAlign: 'center', marginBottom: 15
   },
   button: {
-    backgroundColor: '#4361ee', borderRadius: 8,
+    borderRadius: 8,
     paddingVertical: 12, paddingHorizontal: 22,
     alignItems: 'center', margin: 5, minHeight: 44
   },
