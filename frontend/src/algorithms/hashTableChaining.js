@@ -42,13 +42,6 @@ export class HashTable {
     }
     return false;
   }
-  displayGames() {
-    this.table.forEach(bucket => {
-      bucket.forEach(entry => {
-        console.log(entry.key, entry.value);
-      });
-    });
-  }
   getAllGames() {
     const games = [];
     this.table.forEach(bucket => {

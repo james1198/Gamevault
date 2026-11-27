@@ -40,7 +40,6 @@ export class linearHashTable {
       this.table[index] = { key, value };
       return true;
     }
-    console.log("Hash table is full!");
     return false;
   }
 
@@ -69,14 +68,6 @@ export class linearHashTable {
       attempts++;
     }
     return false;
-  }
-
-  displayGames() {
-    this.table.forEach(entry => {
-      if (entry !== null && entry !== this.DELETED) {
-        console.log(entry.key, entry.value);
-      }
-    });
   }
   getAllGames() {
     const games = [];

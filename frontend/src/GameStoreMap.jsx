@@ -19,9 +19,9 @@ export default function GameStoreMap({ location, nearbyStores }) {
                 title="You are here"
                 pinColor="blue"
             />
-            {nearbyStores.map((store, index) => (
+            {nearbyStores.map((store) => (
                 <Marker
-                    key={index}
+                    key={store.id}
                     coordinate={{
                         latitude: store.latitude,
                         longitude: store.longitude,

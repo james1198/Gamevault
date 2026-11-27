@@ -1,18 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const db = require("./database");
-
 const app = express();
 const PORT = 5000;
+const { validateGame } = require("./validation");
 
 app.use(cors());
 app.use(express.json());
-
-const validStatuses = [
-  "Want to Play",
-  "Currently Playing",
-  "Completed"
-];
 
 app.get("/api/health", (req, res) => {
   res.json({
@@ -42,30 +36,11 @@ app.post("/api/games", (req, res) => {
     rating = null
   } = req.body;
 
-  if (typeof title !== "string" || !title.trim()) {
-    return res.status(400).json({
-      error: "Game title is required."
-    });
-  }
-  if (typeof genre !== "string" || typeof platform !== "string") {
-    return res.status(400).json({
-      error: "Genre and platform must be text."
-    });
-  }
-  
+    const validationError = validateGame(title, genre, platform, status, rating);
 
-  if (!validStatuses.includes(status)) {
+  if (validationError) {
     return res.status(400).json({
-      error: "Invalid game status."
-    });
-  }
-
-  if (
-    rating !== null &&
-    (!Number.isInteger(rating) || rating < 1 || rating > 10)
-  ) {
-    return res.status(400).json({
-      error: "Rating must be between 1 and 10."
+      error: validationError
     });
   }
 
@@ -96,29 +71,11 @@ app.put("/api/games/:id", (req, res) => {
     rating = null
   } = req.body;
 
-  if (typeof title !== "string" || !title.trim()) {
-    return res.status(400).json({
-      error: "Game title is required."
-    });
-  }
-    if (typeof genre !== "string" || typeof platform !== "string") {
-      return res.status(400).json({
-        error: "Genre and platform must be text."
-      });
-    }
+  const validationError = validateGame(title, genre, platform, status, rating);
 
-  if (!validStatuses.includes(status)) {
+  if (validationError) {
     return res.status(400).json({
-      error: "Invalid game status."
-    });
-  }
-
-  if (
-    rating !== null &&
-    (!Number.isInteger(rating) || rating < 1 || rating > 10)
-  ) {
-    return res.status(400).json({
-      error: "Rating must be between 1 and 10."
+      error: validationError
     });
   }
 

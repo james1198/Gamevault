@@ -22,3 +22,18 @@ coverage/
 
 # Expo local state
 .expo/
+
+# Private credentials and signing keys
+keystore.json
+credentials.json
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+
+# SQLite temporary files
+*.db-journal
+
+# Operating system files
+.DS_Store
+Thumbs.db

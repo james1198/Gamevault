@@ -9,7 +9,7 @@ import {
   SafeAreaProvider
 } from 'react-native-safe-area-context'
 import { Picker } from '@react-native-picker/picker'
-import { loadGames } from './algorithms/gameArray'
+import { loadGames, findGame } from './algorithms/gameArray'
 import { HashTable } from './algorithms/hashTableChaining'
 import { linearHashTable } from './algorithms/hashTableLinear'
 import * as Location from 'expo-location'
@@ -70,6 +70,8 @@ export default function App() {
   const scrollRef = useRef(null)
   const gamesPosition = useRef(0)
   const pendingGamesLink = useRef(false)
+  const chainingRef = useRef(null)
+  const linearRef = useRef(null)
   const [games, setGames] = useState([])
   const [title, setTitle] = useState('')
   const [genre, setGenre] = useState('')
@@ -270,14 +272,13 @@ if (stores.length === 0) {
   useEffect(() => {
     loadGames(games)
 
-    const chaining = new HashTable(Math.max(5, games.length * 2))
-    const linear = new linearHashTable(Math.max(5, games.length * 2 + 1))
+    chainingRef.current = new HashTable(Math.max(5, games.length * 2))
+    linearRef.current = new linearHashTable(Math.max(5, games.length * 2 + 1))
 
     games.forEach(game => {
-      chaining.set(game.id, game)
-      linear.set(game.id, game)
+      chainingRef.current.set(game.id, game)
+      linearRef.current.set(game.id, game)
     })
-
   }, [games])
 
   async function request(path, method = 'GET', data) {
@@ -329,7 +330,7 @@ if (stores.length === 0) {
       return notify('Rating must be a whole number from 1 to 10')
     }
 
-    const original = games.find(game => game.id === id)
+    const original = chainingRef.current?.get(id)
     if (!original) return
 
     try {
@@ -351,8 +352,12 @@ if (stores.length === 0) {
     }
   }
 
-  async function deleteGame(id) {
-    try {
+    async function deleteGame(id) {
+      const game = linearRef.current?.get(id)
+
+      if (!game) return notify('Game not found')
+
+      try {
       await request(`/${id}`, 'DELETE')
       setGames(previous => previous.filter(game => game.id !== id))
     } catch {
@@ -361,10 +366,12 @@ if (stores.length === 0) {
   }
 
   function confirmDelete(id) {
+    const game = findGame(id)
+    if (!game) return notify('Game not found')
     if (Platform.OS === 'web') {
-      if (globalThis.confirm('Delete this game?')) deleteGame(id)
+      if (globalThis.confirm(`Delete ${game.title}?`)) deleteGame(id)
     } else {
-      Alert.alert('Delete Game', 'Are you sure?', [
+      Alert.alert('Delete Game', `Delete ${game.title}?`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive',
           onPress: () => deleteGame(id) }
