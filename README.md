@@ -1,4 +1,5 @@
 This was written with AI if thats an issue I apoligise but i remember you said we could use AI for the Readme in an older quarter
+
 # GameVault
 
 GameVault is a full-stack video game collection manager built with React Native, Expo, Node.js, Express, and SQLite. The application demonstrates software development, mobile application development, data structures, and algorithm analysis.
@@ -6,6 +7,8 @@ GameVault is a full-stack video game collection manager built with React Native,
 **Repository:** https://github.com/james1198/Gamevault
 
 **Local Deployment:** http://gamevault.local
+
+**Project Status:** Implemented, locally deployed, and tested. Additional native feature verification is pending.
 
 ## Table of Contents
 
@@ -23,9 +26,11 @@ GameVault is a full-stack video game collection manager built with React Native,
 - [Testing](#testing)
 - [Continuous Integration](#continuous-integration)
 - [Local IIS Deployment](#local-iis-deployment)
+- [Code Cleanup and Maintenance](#code-cleanup-and-maintenance)
 - [Privacy and Permissions](#privacy-and-permissions)
 - [Deliverables](#deliverables)
 - [Limitations and Future Work](#limitations-and-future-work)
+- [References](#references)
 - [Conclusion](#conclusion)
 
 ## Course Context
@@ -114,6 +119,8 @@ The application automatically calculates and displays:
 - Scrollable game collection.
 - Responsive game cards.
 - Platform-specific alerts.
+- Edit mode to reduce accidental changes.
+- Game deletion confirmation.
 
 ### Local Deployment
 
@@ -123,6 +130,7 @@ The application automatically calculates and displays:
 - Connection to the local Node.js backend.
 - Persistent SQLite database storage.
 - Production web access without running the Expo development server.
+- Successful production rebuild and redeployment following final code cleanup.
 
 ## Mobile Development Requirement Alignment
 
@@ -147,11 +155,17 @@ Successfully verified functionality includes:
 - Application startup.
 - Backend connectivity.
 - Loading saved games.
+- Adding games.
+- Editing and saving games.
+- Deleting games.
 - Foreground location services.
+- Displaying the current device location on a map.
 - Title animation.
 - External API response handling.
 
-The external API successfully returned a response during testing, although no matching nearby stores were returned. Displaying actual nearby store results has not been verified.
+All nine final mobile functionality checks passed.
+
+The external API successfully returned a response during testing, although no matching nearby stores were returned during the earlier store search test. Displaying actual nearby store results has not been verified.
 
 Background location tracking and custom deep linking have been implemented but require additional verification using a native development build.
 
@@ -343,11 +357,29 @@ The benchmark demonstrates that theoretical time complexity does not always pred
 
 ### Application Integration
 
-When GameVault loads game records, the application initializes its array and both hash-table implementations using the retrieved data.
+GameVault initializes and synchronizes its dynamic array and both hash-table implementations whenever the game collection changes.
+
+Each implementation serves a purpose within the application:
+
+| Data Structure | Application Usage |
+| --- | --- |
+| Dynamic array | Searches for a game by ID and retrieves its title when displaying the deletion confirmation. |
+| Separate-chaining hash table | Retrieves the original game record when saving edited game information. |
+| Linear-probing hash table | Verifies that a game exists before submitting a deletion request. |
+
+The in-memory data structures are rebuilt when the collection changes to remain synchronized with the application state.
+
+The hash-table capacities are determined using the number of games in the collection to maintain available capacity and a reasonable load factor.
 
 Temporary benchmarking code was used during development to compare search performance and was removed from the normal application interface after testing.
 
+Unused duplicate display methods and unnecessary debugging statements were removed during final code cleanup.
+
 SQLite remains the application's primary persistent storage system.
+
+The use of multiple in-memory structures is intended to demonstrate data structure implementations for educational purposes. Maintaining multiple copies of collection references introduces additional memory and synchronization overhead.
+
+Editing and deletion functionality were successfully verified on both the deployed IIS website and the iPhone application.
 
 ## Software Development Alignment
 
@@ -356,21 +388,23 @@ GameVault demonstrates the following software development concepts:
 | Requirement | Implementation |
 | --- | --- |
 | Project planning | Defined application requirements and collection-management features. |
-| System design | Separates the frontend, backend, database, and algorithm implementations. |
+| System design | Separates the frontend, backend, database, validation, and algorithm implementations. |
 | Frontend development | React Native and Expo application. |
 | Backend development | Node.js and Express REST API. |
 | Database management | SQLite persistent storage. |
 | API development | REST endpoints for creating, retrieving, updating, and deleting games. |
-| Input validation | Backend validation for game information, ratings, statuses, and IDs. |
+| Input validation | Shared backend validation for game information, ratings, and statuses, with endpoint validation for IDs. |
 | Error handling | Frontend alerts and backend error responses. |
 | External integration | OpenStreetMap Nominatim API. |
 | Version control | Git and GitHub. |
-| Automated testing | Vitest backend validation tests. |
+| Automated testing | Vitest tests using the actual backend validation function. |
 | Continuous integration | GitHub Actions workflow configured to run automated tests. |
 | Production build | Expo production web export. |
 | Local deployment | Production web application hosted using Microsoft IIS. |
 | Custom URL | Windows hosts file and IIS hostname binding. |
-| Documentation | GitHub README containing setup instructions and project analysis. |
+| Code maintenance | Removal of unused dependencies, legacy configuration, and debugging code. |
+| Quality assurance | Automated tests and manual testing on IIS and iPhone. |
+| Documentation | GitHub README containing setup instructions, testing results, and project analysis. |
 
 ### System Architecture
 
@@ -379,6 +413,8 @@ GameVault uses a client-server architecture.
 The frontend provides the user interface and communicates with the Express backend through HTTP requests.
 
 The backend processes requests, validates submitted information, and performs database operations.
+
+The shared validation module allows the application and automated tests to use the same validation logic.
 
 SQLite stores the game collection persistently.
 
@@ -390,11 +426,11 @@ The production web frontend is hosted through IIS, while the Express backend run
 
 1. The user opens the GameVault application.
 2. The frontend sends an HTTP request to the backend.
-3. The backend validates the request.
+3. The backend validates submitted information where applicable.
 4. SQLite retrieves or modifies the requested records.
 5. The backend returns a JSON response.
 6. The frontend updates the displayed collection.
-7. The application initializes its in-memory data structures using the updated collection.
+7. The application synchronizes its in-memory data structures using the updated collection.
 
 ### Deployment Architecture
 
@@ -422,6 +458,27 @@ SQLite Database
 
 IIS serves the production frontend files. The frontend sends API requests directly to the local Express backend.
 
+### Mobile Architecture
+
+```text
+iPhone / Expo Application
+        |
+        | Local network HTTP requests
+        v
+Node.js / Express Backend
+        |
+        v
+SQLite Database
+
+iPhone / Expo Application
+        |
+        | Location-based search requests
+        v
+OpenStreetMap Nominatim API
+```
+
+The mobile application accesses the backend using the local network IP address of the computer running the Express server.
+
 ## Technology Stack
 
 ### Frontend
@@ -429,6 +486,7 @@ IIS serves the production frontend files. The frontend sends API requests direct
 - JavaScript
 - React
 - React Native
+- React Native Web
 - Expo
 - Expo Location
 - Expo Task Manager
@@ -453,6 +511,7 @@ IIS serves the production frontend files. The frontend sends API requests direct
 - GitHub
 - GitHub Actions
 - Expo Go
+- Oxlint
 
 ### Deployment
 
@@ -467,7 +526,15 @@ IIS serves the production frontend files. The frontend sends API requests direct
 - OpenStreetMap
 - Nominatim API
 
+### Development Environment
+
+- Node.js: v24.19.0
+- npm: v12.2.1
+- Expo SDK: 58
+
 ## Project Structure
+
+The following structure shows the primary application files and generated local files.
 
 ```text
 Gamevault/
@@ -477,12 +544,17 @@ Gamevault/
 ├── backend/
 │   ├── database.js
 │   ├── server.js
+│   ├── validation.js
 │   ├── validation.test.js
 │   ├── package.json
+│   ├── package-lock.json
 │   └── gamevault.db
 ├── frontend/
 │   ├── app.json
+│   ├── index.js
+│   ├── metro.config.js
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── dist/
 │   └── src/
 │       ├── App.jsx
@@ -492,10 +564,19 @@ Gamevault/
 │           ├── gameArray.js
 │           ├── hashTableChaining.js
 │           └── hashTableLinear.js
+├── .gitignore
 └── README.md
 ```
 
 The `dist` directory is generated when the Expo web application is exported for deployment.
+
+The SQLite database is created automatically when the backend starts.
+
+Generated files, local databases, dependencies, environment files, and private signing credentials are covered by Git ignore rules.
+
+Previously tracked Expo local state and signing configuration files were removed from Git tracking during final cleanup.
+
+Unused Vite configuration files, stylesheets, assets, dependencies, and development code were also removed.
 
 ## Getting Started
 
@@ -523,6 +604,12 @@ From the repository root:
 ```bash
 cd backend
 npm install
+npm start
+```
+
+The backend can also be started using:
+
+```bash
 node server.js
 ```
 
@@ -549,6 +636,14 @@ Expected response:
 }
 ```
 
+The saved game collection can be retrieved using:
+
+```text
+http://localhost:5000/api/games
+```
+
+The SQLite database and games table are created automatically if they do not already exist.
+
 ### 3. Configure the Frontend API Address
 
 The frontend selects the backend address based on the platform.
@@ -571,6 +666,8 @@ ipconfig
 
 The mobile device and computer must be able to communicate over the local network.
 
+The computer's firewall must permit the required local network connection.
+
 ### 4. Start the Frontend in Development Mode
 
 Open a separate terminal from the repository root:
@@ -582,6 +679,12 @@ npx expo start
 ```
 
 To open the development web application, press `w`.
+
+Alternatively, the web development application can be started using:
+
+```bash
+npm run web
+```
 
 To open the application on an iPhone, scan the Expo QR code using the iPhone camera.
 
@@ -597,6 +700,8 @@ GameVault requests foreground location permission before retrieving the device's
 
 If permission is denied, the application displays an alert.
 
+The location is used to display the device position and perform nearby game store searches.
+
 ### Background Location Tracking
 
 Background location tracking uses Expo Location and Expo Task Manager.
@@ -610,7 +715,11 @@ Background tracking on iOS requires:
 - Background location permission.
 - Appropriate iOS background location configuration.
 
+The application's Expo configuration includes the required location permission descriptions and background location settings.
+
 Expo Go does not support the full background location functionality required by this feature.
+
+The background location task has been implemented, but successful background execution has not been verified on a native development build.
 
 ### Deep Linking
 
@@ -628,7 +737,17 @@ gamevault://games
 
 When the application receives this link, it is designed to navigate the user to the game collection section.
 
+The application includes handling for incoming link events and initial URLs.
+
 Custom scheme handling requires a compatible native build for complete verification.
+
+### Platform-Specific Maps
+
+The native application uses React Native Maps to display the device location and returned nearby game store markers.
+
+A separate web map component provides a message explaining that the native map is not supported on the web.
+
+This allows the application to support both native iPhone functionality and production web deployment without requiring the native map library to render in a browser.
 
 ## API Endpoints
 
@@ -660,20 +779,78 @@ The backend validates submitted information before modifying the database.
 Validation includes:
 
 - A nonempty game title.
-- Valid genre and platform values.
+- Genre and platform values that are strings.
 - A supported game status.
-- A rating between 1 and 10, or null where permitted.
+- An integer rating between 1 and 10, or null where permitted.
 - Valid positive integer game IDs for operations requiring an ID.
 
-Invalid requests return appropriate error responses.
+The shared validation function is located in:
+
+```text
+backend/validation.js
+```
+
+Both the POST and PUT endpoints use this function to validate submitted game information.
+
+The automated backend tests also import the same validation function.
+
+This reduces duplicated code and ensures that the automated tests exercise the validation logic used by the application.
+
+### Error Handling
+
+The backend provides appropriate HTTP responses for successful and unsuccessful requests.
+
+| Status Code | Purpose |
+| --- | --- |
+| 200 | Successful request |
+| 201 | Game successfully created |
+| 400 | Invalid input or malformed request |
+| 404 | Requested game or API endpoint not found |
+| 500 | Unexpected server error |
+
+The frontend displays feedback when operations fail.
+
+The backend uses parameterized SQL statements when interacting with SQLite.
+
+### Database Structure
+
+The SQLite database contains a games table.
+
+| Column | Data Type | Purpose |
+| --- | --- | --- |
+| `id` | INTEGER | Unique game identifier and primary key |
+| `title` | TEXT | Game title |
+| `genre` | TEXT | Game genre |
+| `platform` | TEXT | Gaming platform |
+| `status` | TEXT | Current game status |
+| `rating` | INTEGER | Game rating |
+| `created_at` | DATETIME | Record creation timestamp |
+
+The database uses an automatically incrementing primary key.
+
+The default game status is Want to Play.
+
+The database file is located at:
+
+```text
+backend/gamevault.db
+```
+
+The database file is excluded from Git tracking so each installation can maintain its own local collection.
 
 ## Testing
+
+Final application testing was conducted on November 26, 2026, following code cleanup, dependency removal, validation improvements, and production redeployment.
 
 ### Automated Backend Testing
 
 Vitest is used to perform automated backend validation testing.
 
-To run the tests:
+The backend validation function is located in `backend/validation.js` and is shared by the Express API and automated tests.
+
+This ensures that the tests exercise the actual validation logic used by the application rather than duplicated test logic.
+
+To run the automated tests:
 
 ```bash
 cd backend
@@ -687,43 +864,118 @@ npm test
 | Valid game title accepted | Passed |
 | Empty game title rejected | Passed |
 
-**Total tests:** 2
+- Total tests: 2
+- Passed: 2
+- Failed: 0
 
-**Passed:** 2
+These tests verify title validation behavior. They do not constitute complete automated coverage of all validation rules or REST API endpoints.
 
-**Failed:** 0
+### Backend API Testing
 
-These tests verify title validation behavior. They do not constitute complete automated coverage of all REST API endpoints.
+The backend was started successfully following final code cleanup.
 
-### Manual Testing
+The SQLite database connection was established, and the API successfully returned stored game records.
+
+| Test | Result |
+| --- | --- |
+| GET `/api/health` | Passed |
+| GET `/api/games` | Passed |
+
+Both endpoints were tested using a web browser.
+
+**Results: 2 of 2 checks passed.**
+
+### Production IIS Frontend Testing
+
+The production web application was rebuilt and redeployed to Microsoft IIS following final code cleanup.
+
+Testing was conducted at:
+
+```text
+http://gamevault.local
+```
+
+| Test | Result |
+| --- | --- |
+| Existing games display correctly | Passed |
+| Add a new game | Passed |
+| Search for a game | Passed |
+| Enable and disable edit mode | Passed |
+| Edit title, genre, platform, and rating | Passed |
+| Change game status | Passed |
+| Save changes | Passed |
+| Delete a game | Passed |
+| Refresh and confirm data persistence | Passed |
+
+**Results: 9 of 9 checks passed.**
+
+These checks verified the functionality of the actual deployed production application rather than only the development web application.
+
+### Mobile Application Testing
+
+The mobile application was tested on a physical iPhone using Expo Go.
+
+| Test | Result |
+| --- | --- |
+| Application startup | Passed |
+| Saved games display correctly | Passed |
+| Add a game | Passed |
+| Edit and save a game | Passed |
+| Delete a game | Passed |
+| Current device location | Passed |
+| Map displays current location | Passed |
+| Nearby game store API response | Passed |
+| Title animation | Passed |
+
+**Results: 9 of 9 checks passed.**
+
+### Final Testing Summary
+
+| Category | Passed | Failed |
+| --- | ---: | ---: |
+| Automated backend tests | 2 | 0 |
+| Backend API checks | 2 | 0 |
+| Production IIS frontend checks | 9 | 0 |
+| Mobile application checks | 9 | 0 |
+| **Total** | **22** | **0** |
+
+All 22 completed final testing checks passed successfully.
+
+The testing results demonstrate that the application continued to function after the final code cleanup and dependency changes.
+
+### Additional Development Verification
+
+The following functionality was also verified during earlier development:
 
 | Feature | Result |
 | --- | --- |
-| Backend startup | Passed |
-| Backend health endpoint | Passed |
-| Add games | Passed |
-| Edit games | Passed |
-| Delete games | Passed |
-| Search games | Passed |
-| SQLite persistence after restart | Passed |
+| SQLite persistence after backend restart | Passed |
 | Development web application | Passed |
-| iPhone application startup | Passed |
-| Loading saved games on iPhone | Passed |
-| Foreground location services | Passed |
-| Title animation | Passed |
-| External API response | Passed |
-| Actual nearby store results | Not verified |
-| Background location tracking | Implemented; native testing pending |
-| Custom deep linking | Implemented; native testing pending |
+| Backend startup | Passed |
 | Expo production web export | Passed |
 | IIS installation | Passed |
 | Custom hostname resolution | Passed |
 | Local IIS website access | Passed |
 | Deployed frontend backend connectivity | Passed |
 
+These earlier checks are not included in the total of 22 final testing checks.
+
+### Remaining Verification
+
+The following functionality has been implemented or configured but has not been fully verified:
+
+| Feature | Status |
+| --- | --- |
+| Actual nearby game store marker results | Not verified |
+| Native background location tracking | Implemented; native testing pending |
+| Custom native deep linking | Implemented; native testing pending |
+| GitHub Actions workflow execution | Verification pending |
+
+Background location tracking and custom deep linking require a compatible native development build for complete verification.
+
 ## Continuous Integration
 
-GameVault includes a GitHub Actions continuous integration workflow located at:
+GameVault includes a GitHub Actions continuous integration workflow intended to be located at:
 
 ```text
 .github/workflows/ci.yml
@@ -771,7 +1023,9 @@ jobs:
         run: npm test
 ```
 
-The automated tests have passed locally. Successful execution of the GitHub Actions workflow has not been verified.
+The automated tests have passed locally following the validation improvements.
+
+Successful execution of the GitHub Actions workflow has not yet been verified.
 
 Production deployment is performed manually by exporting the frontend and copying the generated files to IIS.
 
@@ -785,11 +1039,15 @@ The React Native application was exported as a production web application using 
 
 A custom hostname was configured using IIS website bindings and the Windows hosts file.
 
-**Deployment date:** November 25, 2026
+**Initial deployment date:** November 25, 2026
+
+**Final redeployment date:** November 26, 2026
 
 **Deployment status:** Successful
 
 **Local application URL:** http://gamevault.local
+
+The production application was rebuilt and redeployed following final code cleanup. All nine production frontend functionality checks passed successfully on the updated IIS deployment.
 
 ### 1. Enable Internet Information Services
 
@@ -888,7 +1146,7 @@ The entry was successfully added using an administrator Command Prompt:
 echo 127.0.0.1 gamevault.local >> C:\Windows\System32\drivers\etc\hosts
 ```
 
-This command only needs to be executed once.
+This command only needs to be executed once if the entry does not already exist.
 
 The Windows DNS resolver cache was cleared using:
 
@@ -927,6 +1185,12 @@ From the GameVault project directory:
 
 ```bash
 cd backend
+npm start
+```
+
+The backend can also be started using:
+
+```bash
 node server.js
 ```
 
@@ -971,6 +1235,12 @@ Replace the previous production files with the newly generated files.
 
 Refresh the browser to access the updated application.
 
+A forced browser refresh can be performed using:
+
+```text
+Ctrl + F5
+```
+
 Backend source code changes require restarting the Node.js backend process.
 
 ### Deployment Verification
@@ -987,6 +1257,9 @@ Backend source code changes require restarting the Node.js backend process.
 | Hostname resolution | Successful |
 | Production website access | Successful |
 | Backend connectivity | Successful |
+| Final production rebuild | Successful |
+| Final production redeployment | Successful |
+| Final frontend functionality testing | 9 of 9 passed |
 
 ### Deployment Scope
 
@@ -999,6 +1272,88 @@ The hostname is configured locally and is not publicly accessible over the inter
 The Windows computer must remain powered on, IIS must be running, and the Node.js backend must be started for the application to function.
 
 Cloud hosting was not required for the instructor-approved local deployment.
+
+## Code Cleanup and Maintenance
+
+A final code review and cleanup was conducted before completing the project.
+
+The purpose of this process was to remove unnecessary code, improve maintainability, reduce unused dependencies, and prepare the application for final submission.
+
+### Frontend Cleanup
+
+- Removed unused imports.
+- Removed unnecessary debugging statements.
+- Removed unused development functions.
+- Corrected location coordinate labels.
+- Removed duplicate style properties.
+- Improved state initialization.
+- Reviewed platform-specific map components.
+- Removed unused web map component parameters.
+- Removed legacy Vite configuration files.
+- Removed unused stylesheets and image assets.
+
+### Data Structure Cleanup
+
+- Reviewed all three data structure implementations.
+- Removed unnecessary duplicate display methods from the hash-table implementations.
+- Removed unnecessary hash-table debugging statements.
+- Retained insertion, deletion, searching, and traversal operations.
+- Integrated all three data structure implementations into application functionality.
+- Maintained synchronization between application state and the in-memory data structures.
+
+### Backend Cleanup
+
+- Consolidated repeated game validation logic.
+- Created a reusable validation module.
+- Updated POST and PUT endpoints to use shared validation.
+- Updated automated tests to use the actual backend validation function.
+- Retained database initialization and connection logging.
+- Retained necessary error handling and server startup logging.
+
+### Dependency Cleanup
+
+The following unused dependencies were removed:
+
+| Dependency | Reason |
+| --- | --- |
+| `vite` | The application now uses Expo instead of Vite. |
+| `@vitejs/plugin-react` | No longer required after transitioning to Expo. |
+| `nodemon` | The backend is started directly using Node.js. |
+
+An unused frontend Vitest script was also removed because the automated tests are located in the backend.
+
+### Repository Cleanup
+
+The `.gitignore` configuration was reviewed and expanded to exclude:
+
+- Installed dependencies.
+- Environment variables.
+- Generated production builds.
+- Test coverage files.
+- Local SQLite databases.
+- SQLite temporary files.
+- Log files.
+- Expo local state.
+- Private credentials.
+- Signing keys.
+- Operating system-generated files.
+
+Previously tracked Expo local state files and signing configuration files were removed from Git tracking.
+
+Removing a previously tracked file does not erase its historical Git commits. Any real credentials previously committed to the repository should be reviewed and rotated if necessary.
+
+### Cleanup Verification
+
+After completing the cleanup:
+
+- Both automated backend tests passed.
+- Both backend API checks passed.
+- The production web application was rebuilt successfully.
+- The IIS deployment was updated successfully.
+- All nine production frontend checks passed.
+- All nine mobile functionality checks passed.
+
+These results confirm that the tested application functionality remained operational following the cleanup process.
 
 ## Privacy and Permissions
 
@@ -1016,9 +1371,23 @@ Background location updates are currently logged locally during tracking.
 
 The application should comply with the OpenStreetMap Nominatim usage policy and provide appropriate OpenStreetMap attribution.
 
-OpenStreetMap contributors: https://www.openstreetmap.org/copyright
+OpenStreetMap contributors:
 
-Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
+https://www.openstreetmap.org/copyright
+
+Nominatim usage policy:
+
+https://operations.osmfoundation.org/policies/nominatim/
+
+### Repository Privacy
+
+Local database files, environment files, and private signing credentials are not intended to be included in the public source repository.
+
+Git ignore rules are used to reduce the risk of accidentally committing sensitive or unnecessary files.
+
+The application does not currently implement user authentication or separate user accounts.
+
+The deployment is intended for local educational use rather than public production access.
 
 ## Deliverables
 
@@ -1029,7 +1398,9 @@ Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 - Node.js and Express backend.
 - REST API.
 - SQLite database.
-- Input validation and error handling.
+- Persistent game collection storage.
+- Shared input validation module.
+- Error handling.
 - Automated validation tests.
 - Continuous integration configuration.
 - GitHub source code.
@@ -1037,6 +1408,8 @@ Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 - Local Microsoft IIS deployment.
 - Custom hostname configuration.
 - Successful local deployment verification.
+- Final application testing.
+- Code cleanup and dependency review.
 - Project documentation.
 
 ### Mobile Application Development
@@ -1050,6 +1423,8 @@ Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 - Custom deep-link handling.
 - UI animation.
 - Interactive user controls.
+- Persistent game collection access.
+- Successful completion of nine final mobile functionality checks.
 - Native verification of background tracking and deep linking pending.
 
 ### Data Structures and Algorithms
@@ -1059,10 +1434,12 @@ Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 - Linear-probing hash-table implementation.
 - Insertion, deletion, searching, and traversal operations.
 - Hash-table collision-handling comparison.
+- Polynomial-style hash function.
 - Big O complexity analysis.
 - Space complexity analysis.
 - Recorded performance benchmarks.
-- Application integration.
+- Application integration of all three implementations.
+- Successful application editing and deletion verification.
 
 ## Limitations and Future Work
 
@@ -1076,6 +1453,8 @@ The current application has the following limitations:
 - Custom deep linking requires additional native verification.
 - Automated testing currently covers title validation rather than the entire application.
 - GitHub Actions execution has not yet been verified.
+- The recorded data structure benchmarks were not repeated after both hash-table implementations received the same improved hash function.
+- Maintaining multiple in-memory data structures introduces additional memory and synchronization overhead.
 - The local IIS deployment requires the host computer to remain powered on.
 - The Node.js backend must be started manually.
 - Production frontend updates require rebuilding and copying files to IIS.
@@ -1083,6 +1462,7 @@ The current application has the following limitations:
 - The local deployment uses HTTP rather than HTTPS.
 - Browser geolocation may be restricted when accessing the custom HTTP hostname because it is not a secure context.
 - The application does not currently implement user authentication or separate user accounts.
+- Public mobile application store distribution has not been performed.
 
 Potential future improvements include:
 
@@ -1091,15 +1471,22 @@ Potential future improvements include:
 - Automated deployment.
 - User authentication.
 - Individual user collections.
-- Additional automated tests.
+- Additional automated validation and API tests.
+- Native development build testing.
 - Improved game store searches.
+- Improved configuration of the backend network address.
+- Additional controlled data structure benchmarks.
 - Game cover images.
 - Collection export functionality.
 - Additional collection statistics.
 
 ## References
 
+- Expo Documentation: https://docs.expo.dev/
 - Expo Web Deployment: https://docs.expo.dev/guides/publishing-websites/
+- Expo Location Documentation: https://docs.expo.dev/versions/latest/sdk/location/
+- Expo Task Manager Documentation: https://docs.expo.dev/versions/latest/sdk/task-manager/
+- Expo Linking Documentation: https://docs.expo.dev/linking/overview/
 - Microsoft IIS Documentation: https://learn.microsoft.com/en-us/iis/
 - React Native Documentation: https://reactnative.dev/docs/getting-started
 - Express Documentation: https://expressjs.com/
@@ -1107,6 +1494,7 @@ Potential future improvements include:
 - Vitest Documentation: https://vitest.dev/
 - GitHub Actions Documentation: https://docs.github.com/en/actions
 - Nominatim Documentation: https://nominatim.org/release-docs/latest/
+- OpenStreetMap Copyright and Attribution: https://www.openstreetmap.org/copyright
 
 ## Conclusion
 
@@ -1116,10 +1504,27 @@ The project provides persistent game collection management through a REST API an
 
 The data structure implementations demonstrate how different storage and collision-handling strategies affect algorithm performance. Recorded benchmarks highlight the importance of hash-function quality and implementation decisions.
 
-The project also incorporates source control, automated testing, continuous integration configuration, and technical documentation.
+All three data structure implementations are integrated into the application and serve specific purposes when retrieving, editing, and deleting game information.
+
+The project also incorporates source control, shared input validation, automated testing, continuous integration configuration, code maintenance, and technical documentation.
 
 The production web application was successfully deployed locally using Microsoft Internet Information Services. A custom hostname was configured through IIS website bindings and the Windows hosts file.
+
+Following final code cleanup, the production application was rebuilt and redeployed successfully.
+
+Final testing results included:
+
+- 2 of 2 automated backend tests passed.
+- 2 of 2 backend API checks passed.
+- 9 of 9 production IIS frontend checks passed.
+- 9 of 9 mobile functionality checks passed.
+
+All 22 completed final testing checks passed successfully.
 
 The deployed application is accessible at http://gamevault.local and successfully communicates with the local Express backend.
 
 The local deployment satisfies the instructor's specified IIS and custom hostname deployment requirements.
+
+The core application functionality has been successfully implemented and tested. Additional native verification and confirmation of the GitHub Actions workflow remain outstanding.
+
+GameVault demonstrates the practical application of concepts learned throughout all three courses in a single functional software project.
