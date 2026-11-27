@@ -41,13 +41,29 @@ if  (Platform.OS !== 'web') {
 
 
 function Button({ title, onPress, type = 'primary' }) {
+  const scale = useRef(new Animated.Value(1)).current
+
+  function animatedButton(vaule) {
+    Animated.spring(scale, {
+      toValue: value,
+      friction: 5,
+      tension: 150,
+      useNativeDriver: Platform.OS !== 'web'
+    }).start()
+  }
+
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.button, styles[type]]}
-    >
-      <Text style={styles.buttonText}>{title}</Text>
-    </Pressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => animateButton(0.95)}
+        onPressOut={() => animateButton(1)}
+        style={[styles.button, styles[type]]}
+      >
+        <Text style={styles.buttonText}>{title}</Text>
+      </Pressable>
+    </Animated.View>
   )
 }
 
